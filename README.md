@@ -19,7 +19,7 @@ against Cloud unchanged. The read paths (sprint report) go through MCP and are m
 ## Install
 
 ```bash
-claude plugin marketplace add shinn716/jira-skill
+claude plugin marketplace add shinn716/jira-skills
 claude plugin install jira-skills@jira-skills
 ```
 
