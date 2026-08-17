@@ -1,0 +1,6 @@
+{
+  "jira_url": "https://jira.example.com",
+  "board_id": "1234",
+  "board_name": "My Scrum Board",
+  "me": "your.jira.username"
+}

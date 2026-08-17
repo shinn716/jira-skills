@@ -1,0 +1,6 @@
+{
+  "name": "jira-skills",
+  "description": "Two Jira skills for Jira Server/Data Center: post a branch's change summary to its ticket, and render a personal sprint report as a standalone HTML file.",
+  "version": "1.0.0",
+  "keywords": ["jira", "sprint", "report", "changelog", "mcp"]
+}

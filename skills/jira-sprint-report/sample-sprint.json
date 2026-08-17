@@ -1,0 +1,72 @@
+{
+  "sprint": {
+    "name": "Sprint 26",
+    "state": "closed",
+    "start_date": "2026-08-12T09:37:00.000+0800",
+    "end_date": "2026-08-25T09:37:00.000+0800",
+    "board": "My Scrum Board"
+  },
+  "me": "jane.doe",
+  "issues": [
+    {
+      "key": "PROJ-101",
+      "summary": "Rotate the report signing key",
+      "browse_url": "https://jira.example.com/browse/PROJ-101",
+      "status": {"name": "Closed", "category": "Done"},
+      "issue_type": {"name": "Task"},
+      "assignee": {"display_name": "jane.doe Jane Doe"},
+      "priority": {"name": "High"},
+      "resolutiondate": "2026-08-19T14:02:11.000+0800",
+      "work_summary": "Rotated the signing key and moved it out of {{app.config}} into the secret store. Old key revoked; the raw value is still pasted in this ticket's comments."
+    },
+    {
+      "key": "PROJ-102",
+      "summary": "Sprint issue endpoint pages at 50",
+      "browse_url": "https://jira.example.com/browse/PROJ-102",
+      "status": {"name": "Terminated", "category": "Done"},
+      "issue_type": {"name": "Bug"},
+      "assignee": {"display_name": "jane.doe Jane Doe"},
+      "priority": {"name": "Medium"},
+      "resolutiondate": "2026-08-21T09:15:00.000+0800",
+      "work_summary": "Not a bug — the caller stopped at the first page. Paging until {{total}} fixes the counts."
+    },
+    {
+      "key": "PROJ-103",
+      "summary": "Add donut chart to the sprint report",
+      "browse_url": "https://jira.example.com/browse/PROJ-103",
+      "status": {"name": "In Review", "category": "In Progress"},
+      "issue_type": {"name": "Story"},
+      "assignee": {"display_name": "jane.doe Jane Doe"},
+      "priority": {"name": "Low"}
+    },
+    {
+      "key": "PROJ-104",
+      "summary": "Document the Jira Cloud limitation",
+      "browse_url": "https://jira.example.com/browse/PROJ-104",
+      "status": {"name": "To Do", "category": "To Do"},
+      "issue_type": {"name": "Task"},
+      "assignee": null,
+      "priority": {"name": "Low"}
+    },
+    {
+      "key": "PROJ-105",
+      "summary": "Upgrade the MCP server",
+      "browse_url": "https://jira.example.com/browse/PROJ-105",
+      "status": {"name": "Done", "category": "Done"},
+      "issue_type": {"name": "Task"},
+      "assignee": {"display_name": "sam.lee Sam Lee"},
+      "priority": {"name": "Medium"},
+      "resolutiondate": "2026-08-18T11:00:00.000+0800"
+    },
+    {
+      "key": "PROJ-105",
+      "summary": "Upgrade the MCP server",
+      "browse_url": "https://jira.example.com/browse/PROJ-105",
+      "status": {"name": "Done", "category": "Done"},
+      "issue_type": {"name": "Task"},
+      "assignee": {"display_name": "sam.lee Sam Lee"},
+      "priority": {"name": "Medium"},
+      "resolutiondate": "2026-08-18T11:00:00.000+0800"
+    }
+  ]
+}

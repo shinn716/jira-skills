@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "jira-skills",
+  "description": "Jira Server/DC skills: branch-to-ticket change summaries and standalone HTML sprint reports.",
+  "owner": {
+    "name": "john.tc.tsai"
+  },
+  "plugins": [
+    {
+      "name": "jira-skills",
+      "description": "Post a branch's change summary to its Jira ticket, and render a personal sprint report as one self-contained HTML file.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}

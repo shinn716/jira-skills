@@ -1,0 +1,121 @@
+# jira-skills
+
+Two skills for **Jira Server / Data Center**, built around the read-only Jira MCP server:
+
+| Skill | What it does |
+|---|---|
+| `jira-sync` | Reads the current git branch, writes a ≤250-char change summary, posts it as a comment on the ticket named by the branch (`feature/PROJ-123` → `PROJ-123`). |
+| `jira-sprint-report` | Pulls a sprint, renders one person's work as a self-contained HTML file: stats, SVG charts, a sortable/filterable issue table, a written summary per closed ticket, and a team comparison block. |
+
+They compose: `jira-sync` posts the write-up at merge time, `jira-sprint-report` harvests
+those same comments at the end of the sprint.
+
+## Not for Jira Cloud
+
+Comment bodies here are **wiki markup** and auth is a **Personal Access Token**. Jira Cloud
+uses ADF for comments and email + API token for auth — `post-comment.sh` will not work
+against Cloud unchanged. The read paths (sprint report) go through MCP and are more portable.
+
+## Install
+
+```bash
+claude plugin marketplace add shinn716/jira-skill
+claude plugin install jira-skills@jira-skills
+```
+
+Or clone and add the local path (`claude plugin marketplace add /path/to/jira-skill`), or copy
+`skills/jira-sync` and `skills/jira-sprint-report` into `~/.claude/skills/`.
+
+## Setup
+
+### jira-sync — two environment variables
+
+```bash
+export JIRA_URL=https://jira.example.com
+export JIRA_PERSONAL_TOKEN=...    # Jira → Profile → Personal Access Tokens
+```
+
+Nothing is written to disk, so the token cannot be committed by accident. On Windows use
+`setx` and open a new terminal.
+
+### jira-sprint-report — a config file
+
+Copy `skills/jira-sprint-report/config.example.json` to `config.json` beside it:
+
+```json
+{
+  "jira_url": "https://jira.example.com",
+  "board_id": "1234",
+  "board_name": "My Scrum Board",
+  "me": "your.jira.username"
+}
+```
+
+No secrets — the sprint report reads Jira through the MCP server, which holds its own
+credentials. `config.json` is gitignored because the board id and username are yours.
+
+Assignee resolution, first hit wins: CLI argument → `"me"` in the input JSON → `JIRA_ME`
+→ `config.json`. Matched case-insensitively as a substring of the display name, so
+`jane.doe` matches `jane.doe Jane Doe`.
+
+### MCP server
+
+Both skills read through an Atlassian MCP server, e.g.:
+
+```json
+{
+  "type": "stdio",
+  "command": "uvx",
+  "args": ["mcp-atlassian"],
+  "env": {
+    "JIRA_URL": "https://jira.example.com",
+    "JIRA_PERSONAL_TOKEN": "...",
+    "READ_ONLY_MODE": "true"
+  }
+}
+```
+
+`READ_ONLY_MODE=true` is why `jira-sync` posts over REST instead of through MCP: a read-only
+server exposes no comment tool. Keeping it read-only means no skill can mutate a ticket by
+accident — the one write path is a single script that asks for confirmation first.
+
+## Rendering a report by hand
+
+`render.py` needs no third-party packages — Python 3 standard library only.
+
+```bash
+python skills/jira-sprint-report/render.py sprint.json out.html ["Assignee Name"]
+```
+
+Input JSON is the raw MCP issue objects plus a `sprint` block; the optional `work_summary`
+per issue is what shows up under each row. Re-rendering the same dump for a different
+person is one command.
+
+`sample-sprint.json` is a working input you can render without touching Jira:
+
+```bash
+python skills/jira-sprint-report/render.py \
+  skills/jira-sprint-report/sample-sprint.json out.html
+python skills/jira-sprint-report/test_render.py   # same file, as a smoke test
+```
+
+## Handling secrets in tickets
+
+People paste keys, tokens and connection strings into Jira comments. Both skills are
+instructed to summarise the *fact* ("signing key rotated") and never copy the value into a
+report or a new comment. If you find a live credential in a ticket, the skill will say so
+instead of quietly propagating it.
+
+## Gotchas worth knowing
+
+- **"Done" is a status category, not a status name.** Custom statuses like `Terminated` or
+  `Closed` also sit in category `Done`. Filtering on the literal name undercounts.
+- **Sprint issue endpoints cap at 50 per page.** Both skills page until they reach `total`;
+  a partial page silently skews every percentage in the report.
+- **Comment threads correct themselves.** A later comment often retracts an earlier
+  conclusion. The summary step reads the whole thread rather than grabbing the longest
+  comment, which is usually the retracted one.
+
+## Licence
+
+MIT.
