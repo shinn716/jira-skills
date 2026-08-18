@@ -28,9 +28,9 @@
       "issue_type": {"name": "Bug"},
       "assignee": {"display_name": "jane.doe Jane Doe"},
       "priority": {"name": "Medium"},
-      "fix_versions": [{"name": "1.4.0"}, {"name": "1.4.1"}],
+      "fix_versions": [{"name": "1.4.0"}, {"name": "1.10.0"}],
       "resolutiondate": "2026-08-21T09:15:00.000+0800",
-      "work_summary": "Not a bug — the caller stopped at the first page. Paging until {{total}} fixes the counts."
+      "work_summary": "Not a bug — the caller stopped at the first page. Paging until `total` fixes the counts."
     },
     {
       "key": "PROJ-103",
@@ -39,7 +39,8 @@
       "status": {"name": "In Review", "category": "In Progress"},
       "issue_type": {"name": "Story"},
       "assignee": {"display_name": "jane.doe Jane Doe"},
-      "priority": {"name": "Low"}
+      "priority": {"name": "Low"},
+      "fix_versions": [{"id": "9001"}]
     },
     {
       "key": "PROJ-104",

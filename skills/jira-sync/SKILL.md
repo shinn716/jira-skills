@@ -7,9 +7,14 @@ description: Summarize the current branch's changes and post them as a comment t
 
 Post a change summary from the current git branch to its Jira ticket.
 
-Targets **Jira Server / Data Center**, where comments use wiki markup and auth is a Personal
-Access Token. Jira Cloud uses ADF for comment bodies and email+API-token auth — the posting
-script here will not work against Cloud unchanged.
+Targets **Jira Server / Data Center**: REST API v2 comments, auth by Personal Access Token.
+Jira Cloud uses ADF for comment bodies and email+API-token auth — the posting script here
+will not work against Cloud unchanged.
+
+Comment bodies are written in **Markdown**. Note that stock Jira Server renders comments as
+*wiki markup*, so `**bold**` and `` `code` `` show up literally unless the instance has a
+Markdown-rendering plugin; `-` bullets render as a list either way. Set the body style back
+to wiki markup (`*bold*`, `{{code}}`) if that matters more than the source text reading well.
 
 ## Setup
 
@@ -24,7 +29,7 @@ Or, for Claude Code, the `env` block of the user-level `~/.claude/settings.json`
 inherit it, so it works in every project. Never the project `.claude/settings.json`; that one
 gets committed.
 
-Optional: `JIRA_COMMENT_MAX` caps the comment length in characters — default `500`, `0`
+Optional: `JIRA_COMMENT_MAX` caps the comment length in characters — default `1000`, `0`
 disables the check.
 
 `post-comment.sh` exits with a named error if either required variable is missing.
@@ -83,17 +88,18 @@ change. Mine them — they are the best source for the "why" in the summary.
 
 ### 3. Write the summary
 
-**Hard limit: 500 characters**, or whatever `JIRA_COMMENT_MAX` is set to (`0` disables the
+**Hard limit: 1000 characters**, or whatever `JIRA_COMMENT_MAX` is set to (`0` disables the
 check). Count characters (CJK chars count as 1 each), including markup and whitespace. If the
 draft is over, cut — do not post it long. `post-comment.sh` enforces the same cap and refuses
 an over-long body, so a draft that slips through fails at the post rather than landing
 truncated.
 
-Jira wiki markup, but flat and terse. No `h3.` headings, no test section, no scope header:
+Markdown, but flat and terse. No headings, no test section, no scope header:
 
 - One line per logical change: what changed + **why** (root cause), with the class or file.
-  `{{monospace}}` for class / method / bean / config names.
-- 4–6 bullets max at the default cap; fewer if the cap is lower. Merge related changes into one bullet; drop mechanical or trivial edits.
+  Backticks for class / method / bean / config names, `**bold**` for a behaviour change.
+- `-` for bullets, one level, no nesting.
+- 4–8 bullets max at the default cap; fewer if the cap is lower. Merge related changes into one bullet; drop mechanical or trivial edits.
 - Keep behaviour changes and new assumptions (e.g. "writes are no longer guaranteed to
   succeed") — these survive the cut before anything else does.
 - Drop: diff replay, file counts, restating the ticket, motivation prose, "done" filler.

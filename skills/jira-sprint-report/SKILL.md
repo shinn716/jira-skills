@@ -93,7 +93,8 @@ the longest comment blindly gets this wrong.
 
 No such comment → leave `work_summary` out; the row simply shows no note.
 
-Keep `{{...}}` around class / file / config names — `render.py` renders them as `<code>`.
+Keep the code spans around class / file / config names — `render.py` renders both Markdown
+`` `x` `` (what `jira-sync` writes) and wiki `{{x}}` (what older comments carry) as `<code>`.
 Do not invent content that is not in the comments.
 
 **Comments can contain secrets** — people paste keys, tokens and connection strings into

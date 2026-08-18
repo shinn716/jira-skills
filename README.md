@@ -4,7 +4,7 @@ Two skills for **Jira Server / Data Center**, built around the read-only Jira MC
 
 | Skill | What it does |
 |---|---|
-| `jira-sync` | Reads the current git branch, writes a ≤500-char change summary, posts it as a comment on the ticket named by the branch (`feature/PROJ-123` → `PROJ-123`). |
+| `jira-sync` | Reads the current git branch, writes a ≤1000-char Markdown change summary, posts it as a comment on the ticket named by the branch (`feature/PROJ-123` → `PROJ-123`). |
 | `jira-sprint-report` | Pulls a sprint, renders one person's work as a self-contained HTML file: stats, SVG charts, a sortable/filterable issue table, a written summary per closed ticket, and a team comparison block. |
 
 They compose: `jira-sync` posts the write-up at merge time, `jira-sprint-report` harvests
@@ -12,7 +12,8 @@ those same comments at the end of the sprint.
 
 ## Not for Jira Cloud
 
-Comment bodies here are **wiki markup** and auth is a **Personal Access Token**. Jira Cloud
+Comments go through **REST API v2** as plain text (Markdown, see `jira-sync`) and auth is a
+**Personal Access Token**. Jira Cloud
 uses ADF for comments and email + API token for auth — `post-comment.sh` will not work
 against Cloud unchanged. The read paths (sprint report) go through MCP and are more portable.
 
@@ -122,16 +123,18 @@ curl -s -H "Authorization: Bearer $JIRA_PERSONAL_TOKEN" \
   "$JIRA_URL/rest/api/2/myself" | head -c 200
 ```
 
-`401` → bad or expired token. `404` on a ticket that exists → wrong `JIRA_URL`. `curl failed`
-→ DNS, VPN or TLS, not auth.
+`401` → bad or expired token. `404` here → `JIRA_URL` points at something that is not the
+Jira base URL (a context path like `/jira` is easy to drop). A connection error → DNS, VPN or
+TLS, not auth.
 
-**Optional: `JIRA_COMMENT_MAX`.** Caps the comment length in characters — default `500`, `0`
+**Optional: `JIRA_COMMENT_MAX`.** Caps the comment length in characters — default `1000`, `0`
 disables the check. Set it the same way as the two above. `post-comment.sh` counts characters
 (CJK counts as 1 each) and refuses to post an over-long body rather than truncating it.
 
-Nothing is written to disk by the skills, so the token cannot be committed by accident. Keep
-it out of `config.json`, out of commit messages and out of Jira comments; rotate it from the
-same Profile page if it leaks.
+The skills themselves never write the token anywhere — but the `settings.json` route above
+does put it on disk in plaintext, so keep that file user-only and out of any dotfiles repo or
+cloud-synced folder. Keep the token out of `config.json`, out of commit messages and out of
+Jira comments; rotate it from the same Profile page if it leaks.
 
 ### jira-sprint-report — a config file
 

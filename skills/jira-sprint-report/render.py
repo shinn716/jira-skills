@@ -12,6 +12,7 @@ Input JSON:
 import html
 import json
 import os
+import re
 import sys
 from collections import Counter
 from datetime import datetime, timezone
@@ -101,24 +102,30 @@ def donut(counts, size=180):
 def work_note(issue):
     """Render the closing summary pulled from the ticket's comments, if any.
 
-    Jira Server wiki markup only gets the minimum treatment: {{x}} -> <code>x</code>,
-    leading -/* bullets kept as text, newlines preserved.
+    Code spans only: `x` (Markdown, what jira-sync writes now) and {{x}} (Jira wiki,
+    what older comments carry) both become <code>x</code>. Bullets stay as text,
+    newlines are preserved.
     """
     text = (issue.get("work_summary") or "").strip()
     if not text:
         return ""
-    out, parts = [], text.split("{{")
-    out.append(esc(parts[0]))
-    for p in parts[1:]:
-        code, sep, rest = p.partition("}}")
-        out.append(f"<code>{esc(code)}</code>{esc(rest)}" if sep else esc("{{" + p))
+    parts = re.split(r"`([^`]+)`|\{\{(.+?)\}\}", text)
+    out = [esc(p) if i % 3 == 0 else f"<code>{esc(p)}</code>"
+           for i, p in enumerate(parts) if p]
     return f'<div class="note">{"".join(out)}</div>'
 
 
 def fix_versions(issue):
     """Fix Version/s as a list of names. Jira gives dicts; plain strings are accepted too."""
     raw = issue.get("fix_versions") or issue.get("fixVersions") or []
-    return [v.get("name", "") if isinstance(v, dict) else str(v) for v in raw if v]
+    names = [v.get("name", "") if isinstance(v, dict) else str(v) for v in raw if v]
+    # a nameless version would become an empty filter option, which looks like "All"
+    return [n for n in names if n]
+
+
+def natkey(s):
+    """Sort key that reads digit runs as numbers, so 1.9.0 comes before 1.10.0."""
+    return [(int(p), "") if p.isdigit() else (0, p) for p in re.split(r"(\d+)", str(s)) if p]
 
 
 def fmt_date(s):
@@ -218,7 +225,7 @@ def main():
 
     def select(sid, label, counts):
         opts = "".join(f'<option value="{esc(v)}">{esc(v)} ({n})</option>'
-                       for v, n in sorted(counts))
+                       for v, n in sorted(counts, key=lambda c: natkey(c[0])))
         return (f'<label>{esc(label)}<select id="{sid}">'
                 f'<option value="">All</option>{opts}</select></label>')
 

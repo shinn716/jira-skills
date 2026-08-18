@@ -4,8 +4,8 @@
 # Usage: post-comment.sh PROJ-123 /path/to/body.txt
 #
 # Reads JIRA_URL and JIRA_PERSONAL_TOKEN from the environment.
-# JIRA_COMMENT_MAX caps the body length in characters (default 500, 0 disables).
-# Body file must be UTF-8, Jira wiki markup.
+# JIRA_COMMENT_MAX caps the body length in characters (default 1000, 0 disables).
+# Body file must be UTF-8, Markdown.
 set -euo pipefail
 
 KEY="${1:?usage: post-comment.sh <ISSUE-KEY> <body-file>}"
@@ -22,7 +22,10 @@ BASE="${JIRA_URL:?set JIRA_URL, e.g. https://jira.example.com}"
 BASE="${BASE%/}"
 : "${JIRA_PERSONAL_TOKEN:?set JIRA_PERSONAL_TOKEN to a Jira personal access token}"
 
-MAX="${JIRA_COMMENT_MAX:-500}"
+MAX="${JIRA_COMMENT_MAX:-1000}"
+case "$MAX" in
+  *[!0-9]*|"") echo "JIRA_COMMENT_MAX must be a number of characters (0 disables): $MAX" >&2; exit 1 ;;
+esac
 
 PAYLOAD="$(mktemp)"
 RESP="$(mktemp)"
@@ -34,19 +37,27 @@ import io, json, sys
 body = io.open(sys.argv[1], encoding='utf-8').read()
 limit = int(sys.argv[3] or 0)
 if limit and len(body) > limit:
-    sys.exit("comment is %d characters, limit is %d — shorten it or raise "
+    # ASCII only: this goes to stderr, and a Windows console on a legacy code
+    # page garbles or refuses anything else, hiding the real message
+    sys.exit("comment is %d characters, limit is %d - shorten it or raise "
              "JIRA_COMMENT_MAX" % (len(body), limit))
 io.open(sys.argv[2], 'w', encoding='utf-8').write(json.dumps({'body': body}))
 PY
 
-# the token goes in via --config on stdin, never as an argument: argv is visible
-# to every other user on the machine through ps
+# The token goes in via --config on stdin, never as an argument: argv is visible
+# to every other user on the machine through ps.
+#
+# curl's config parser needs the value quoted (unquoted, it stops at the colon in
+# "Authorization:"), and inside quotes it reads \ and " as escapes — so escape
+# those two first or a token containing either is silently mangled into a 401.
+TOK=${JIRA_PERSONAL_TOKEN//\\/\\\\}
+TOK=${TOK//\"/\\\"}
 HTTP=$(curl -s -o "$RESP" -w '%{http_code}' -m 30 \
   -X POST "$BASE/rest/api/2/issue/$KEY/comment" \
   -H "Content-Type: application/json; charset=utf-8" \
   --data-binary "@$PAYLOAD" \
   --config - <<CFG
-header = "Authorization: Bearer ${JIRA_PERSONAL_TOKEN}"
+header = "Authorization: Bearer ${TOK}"
 CFG
 ) || {
   # curl itself failed (DNS, TLS, timeout) — without this, set -e would abort silently
