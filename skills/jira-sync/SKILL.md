@@ -11,10 +11,8 @@ Targets **Jira Server / Data Center**: REST API v2 comments, auth by Personal Ac
 Jira Cloud uses ADF for comment bodies and email+API-token auth — the posting script here
 will not work against Cloud unchanged.
 
-Comment bodies are written in **Markdown**. Note that stock Jira Server renders comments as
-*wiki markup*, so `**bold**` and `` `code` `` show up literally unless the instance has a
-Markdown-rendering plugin; `-` bullets render as a list either way. Set the body style back
-to wiki markup (`*bold*`, `{{code}}`) if that matters more than the source text reading well.
+Comment bodies are written in **Jira wiki markup** — that is what the Server comment renderer
+understands. Markdown is not converted: `**bold**` and `` `code` `` would show up literally.
 
 ## Setup
 
@@ -94,11 +92,13 @@ draft is over, cut — do not post it long. `post-comment.sh` enforces the same 
 an over-long body, so a draft that slips through fails at the post rather than landing
 truncated.
 
-Markdown, but flat and terse. No headings, no test section, no scope header:
+Jira wiki markup, but flat and terse. No `h3.` headings, no test section, no scope header:
 
 - One line per logical change: what changed + **why** (root cause), with the class or file.
-  Backticks for class / method / bean / config names, `**bold**` for a behaviour change.
-- `-` for bullets, one level, no nesting.
+  `{{monospace}}` for class / method / bean / config names, `*bold*` (single asterisks) for a
+  behaviour change.
+- `*` at the start of a line for bullets, one level, no nesting. Wiki lists need the marker in
+  column 1 — an indented `*` does not render as a bullet.
 - 4–8 bullets max at the default cap; fewer if the cap is lower. Merge related changes into one bullet; drop mechanical or trivial edits.
 - Keep behaviour changes and new assumptions (e.g. "writes are no longer guaranteed to
   succeed") — these survive the cut before anything else does.

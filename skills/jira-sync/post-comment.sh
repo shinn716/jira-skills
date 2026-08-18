@@ -5,7 +5,7 @@
 #
 # Reads JIRA_URL and JIRA_PERSONAL_TOKEN from the environment.
 # JIRA_COMMENT_MAX caps the body length in characters (default 1000, 0 disables).
-# Body file must be UTF-8, Markdown.
+# Body file must be UTF-8, Jira wiki markup.
 set -euo pipefail
 
 KEY="${1:?usage: post-comment.sh <ISSUE-KEY> <body-file>}"

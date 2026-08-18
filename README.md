@@ -4,7 +4,7 @@ Two skills for **Jira Server / Data Center**, built around the read-only Jira MC
 
 | Skill | What it does |
 |---|---|
-| `jira-sync` | Reads the current git branch, writes a ≤1000-char Markdown change summary, posts it as a comment on the ticket named by the branch (`feature/PROJ-123` → `PROJ-123`). |
+| `jira-sync` | Reads the current git branch, writes a ≤1000-char change summary in Jira wiki markup, posts it as a comment on the ticket named by the branch (`feature/PROJ-123` → `PROJ-123`). |
 | `jira-sprint-report` | Pulls a sprint, renders one person's work as a self-contained HTML file: stats, SVG charts, a sortable/filterable issue table, a written summary per closed ticket, and a team comparison block. |
 
 They compose: `jira-sync` posts the write-up at merge time, `jira-sprint-report` harvests
@@ -12,8 +12,7 @@ those same comments at the end of the sprint.
 
 ## Not for Jira Cloud
 
-Comments go through **REST API v2** as plain text (Markdown, see `jira-sync`) and auth is a
-**Personal Access Token**. Jira Cloud
+Comment bodies here are **wiki markup** and auth is a **Personal Access Token**. Jira Cloud
 uses ADF for comments and email + API token for auth — `post-comment.sh` will not work
 against Cloud unchanged. The read paths (sprint report) go through MCP and are more portable.
 

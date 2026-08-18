@@ -102,9 +102,9 @@ def donut(counts, size=180):
 def work_note(issue):
     """Render the closing summary pulled from the ticket's comments, if any.
 
-    Code spans only: `x` (Markdown, what jira-sync writes now) and {{x}} (Jira wiki,
-    what older comments carry) both become <code>x</code>. Bullets stay as text,
-    newlines are preserved.
+    Code spans only: {{x}} (Jira wiki, what jira-sync writes) and `x` (Markdown, in
+    case a comment was typed that way) both become <code>x</code>. Bullets stay as
+    text, newlines are preserved.
     """
     text = (issue.get("work_summary") or "").strip()
     if not text:
