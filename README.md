@@ -18,13 +18,50 @@ against Cloud unchanged. The read paths (sprint report) go through MCP and are m
 
 ## Install
 
+Both skills are plain [Agent Skills](https://developers.openai.com/codex/skills) — a
+directory with a `SKILL.md` carrying `name` and `description`. Any agent that reads that
+format can run them. Only the Claude Code path uses the plugin marketplace; the rest is
+copying two directories.
+
+### Claude Code
+
 ```bash
 claude plugin marketplace add shinn716/jira-skills
 claude plugin install jira-skills@jira-skills
 ```
 
-Or clone and add the local path (`claude plugin marketplace add /path/to/jira-skill`), or copy
-`skills/jira-sync` and `skills/jira-sprint-report` into `~/.claude/skills/`.
+Or clone and add the local path (`claude plugin marketplace add /path/to/jira-skills`), or
+copy `skills/jira-sync` and `skills/jira-sprint-report` into `~/.claude/skills/`.
+
+### OpenAI Codex
+
+```bash
+git clone https://github.com/shinn716/jira-skills
+cp -r jira-skills/skills/jira-sync  jira-skills/skills/jira-sprint-report  ~/.codex/skills/
+```
+
+Project-scoped instead: copy into `.agents/skills/` and commit. `/skills` lists them, `$`
+mentions one. Restart Codex if a freshly copied skill does not show up.
+
+### opencode
+
+```bash
+cp -r jira-skills/skills/* ~/.config/opencode/skills/
+```
+
+opencode also reads Claude-compatible paths, so `~/.claude/skills/` or a project
+`.claude/skills/` works unchanged — one copy serves both agents.
+
+### Cross-agent notes
+
+- **MCP tool names are written bare** in the skills (`jira_get_sprint_issues`), not with
+  Claude's `mcp__jira__` prefix. Each agent prefixes its own way; match on the suffix.
+- **Codex sandboxes network access by default.** `post-comment.sh` talks to Jira over HTTPS,
+  so it fails under the default sandbox — run Codex with network access enabled, or approve
+  the command when prompted. The sprint report is unaffected: it reads through MCP and
+  `render.py` only writes a local file.
+- **`render.py` needs Python 3 and nothing else**, so it runs the same everywhere.
+- `post-comment.sh` needs `bash`, `curl` and `python` on PATH. On Windows, Git Bash.
 
 ## Setup
 
@@ -74,6 +111,18 @@ Both skills read through an Atlassian MCP server, e.g.:
   }
 }
 ```
+
+Codex wants the same server in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.jira]
+command = "uvx"
+args = ["mcp-atlassian"]
+env = { JIRA_URL = "https://jira.example.com", JIRA_PERSONAL_TOKEN = "...", READ_ONLY_MODE = "true" }
+```
+
+opencode takes it under the `mcp` key of `opencode.json` (`"type": "local"`, `command` as an
+argv array).
 
 `READ_ONLY_MODE=true` is why `jira-sync` posts over REST instead of through MCP: a read-only
 server exposes no comment tool. Keeping it read-only means no skill can mutate a ticket by

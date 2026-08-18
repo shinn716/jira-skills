@@ -48,8 +48,9 @@ jira_get_sprints_from_board(board_id=<config.board_id>, state="closed", limit=50
 ```
 
 Closed sprints often come back oldest-first — take the tail for the recent ones. Show the
-active sprint plus the ~5 most recent closed ones (name, id, date range, state) via
-`AskUserQuestion`. If the user already named a sprint ("Sprint 26", an id), skip the menu.
+active sprint plus the ~5 most recent closed ones (name, id, date range, state) and let the
+user pick (`AskUserQuestion` where available, otherwise a numbered list). If the user already
+named a sprint ("Sprint 26", an id), skip the menu.
 
 No board id configured → find it with `jira_get_agile_boards(project_key="PROJ")` and ask
 which board, then tell the user to save it in `config.json`.
@@ -70,8 +71,8 @@ against what you collected and say the number out loud before rendering.
 
 ### 3. Pick whose report this is
 
-Count the assignees and ask with `AskUserQuestion`, listing them with their issue counts and
-the configured `me` first as the default. If the user already named someone, skip the menu.
+Count the assignees and ask the user (same menu mechanism as step 1), listing them with their
+issue counts and the configured `me` first as the default. If the user already named someone, skip the menu.
 
 ### 4. Pull the closing summary for each Done ticket
 
