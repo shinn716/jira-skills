@@ -20,8 +20,14 @@ export JIRA_URL=https://jira.example.com
 export JIRA_PERSONAL_TOKEN=...   # Jira → Profile → Personal Access Tokens
 ```
 
-`post-comment.sh` exits with a named error if either is missing. Nothing is written to disk,
-so the token never lands in a config file that can be committed by accident.
+Or, for Claude Code, the `env` block of the user-level `~/.claude/settings.json` — Bash calls
+inherit it, so it works in every project. Never the project `.claude/settings.json`; that one
+gets committed.
+
+Optional: `JIRA_COMMENT_MAX` caps the comment length in characters — default `500`, `0`
+disables the check.
+
+`post-comment.sh` exits with a named error if either required variable is missing.
 
 Reads go through the Jira MCP server (`jira_get_issue`) when one is available; use it freely
 for context. Writes go through `post-comment.sh`, because a read-only MCP server exposes no
@@ -77,14 +83,17 @@ change. Mine them — they are the best source for the "why" in the summary.
 
 ### 3. Write the summary
 
-**Hard limit: the comment body must be ≤ 250 characters.** Count characters (CJK chars count
-as 1 each), including markup and whitespace. If the draft is over, cut — do not post it long.
+**Hard limit: 500 characters**, or whatever `JIRA_COMMENT_MAX` is set to (`0` disables the
+check). Count characters (CJK chars count as 1 each), including markup and whitespace. If the
+draft is over, cut — do not post it long. `post-comment.sh` enforces the same cap and refuses
+an over-long body, so a draft that slips through fails at the post rather than landing
+truncated.
 
 Jira wiki markup, but flat and terse. No `h3.` headings, no test section, no scope header:
 
 - One line per logical change: what changed + **why** (root cause), with the class or file.
   `{{monospace}}` for class / method / bean / config names.
-- 3–5 bullets max. Merge related changes into one bullet; drop mechanical or trivial edits.
+- 4–6 bullets max at the default cap; fewer if the cap is lower. Merge related changes into one bullet; drop mechanical or trivial edits.
 - Keep behaviour changes and new assumptions (e.g. "writes are no longer guaranteed to
   succeed") — these survive the cut before anything else does.
 - Drop: diff replay, file counts, restating the ticket, motivation prose, "done" filler.

@@ -28,6 +28,9 @@ def main():
     assert "<code>app.config</code>" in html, "wiki {{...}} not rendered as code"
     assert "67%" in html, "completion tile wrong"
     assert "Sam Lee" in html, "team comparison missing"
+    assert 'id="f-v"' in html, "fix version filter missing"
+    assert '<option value="1.4.0">1.4.0 (2)</option>' in html, "fix version counts wrong"
+    assert 'data-v="|1.4.0|1.4.1|"' in html, "multi-version row not pipe-wrapped"
 
     print("OK", out)
 

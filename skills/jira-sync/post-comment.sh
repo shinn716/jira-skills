@@ -4,6 +4,7 @@
 # Usage: post-comment.sh PROJ-123 /path/to/body.txt
 #
 # Reads JIRA_URL and JIRA_PERSONAL_TOKEN from the environment.
+# JIRA_COMMENT_MAX caps the body length in characters (default 500, 0 disables).
 # Body file must be UTF-8, Jira wiki markup.
 set -euo pipefail
 
@@ -21,20 +22,33 @@ BASE="${JIRA_URL:?set JIRA_URL, e.g. https://jira.example.com}"
 BASE="${BASE%/}"
 : "${JIRA_PERSONAL_TOKEN:?set JIRA_PERSONAL_TOKEN to a Jira personal access token}"
 
+MAX="${JIRA_COMMENT_MAX:-500}"
+
 PAYLOAD="$(mktemp)"
 RESP="$(mktemp)"
 trap 'rm -f "$PAYLOAD" "$RESP"' EXIT
-python - "$(winpath "$BODY_FILE")" "$(winpath "$PAYLOAD")" <<'PY'
+# characters, not bytes — a CJK summary is well under the cap by length and well
+# over it by byte count
+python - "$(winpath "$BODY_FILE")" "$(winpath "$PAYLOAD")" "$MAX" <<'PY'
 import io, json, sys
 body = io.open(sys.argv[1], encoding='utf-8').read()
+limit = int(sys.argv[3] or 0)
+if limit and len(body) > limit:
+    sys.exit("comment is %d characters, limit is %d — shorten it or raise "
+             "JIRA_COMMENT_MAX" % (len(body), limit))
 io.open(sys.argv[2], 'w', encoding='utf-8').write(json.dumps({'body': body}))
 PY
 
+# the token goes in via --config on stdin, never as an argument: argv is visible
+# to every other user on the machine through ps
 HTTP=$(curl -s -o "$RESP" -w '%{http_code}' -m 30 \
   -X POST "$BASE/rest/api/2/issue/$KEY/comment" \
-  -H "Authorization: Bearer $JIRA_PERSONAL_TOKEN" \
   -H "Content-Type: application/json; charset=utf-8" \
-  --data-binary "@$PAYLOAD") || {
+  --data-binary "@$PAYLOAD" \
+  --config - <<CFG
+header = "Authorization: Bearer ${JIRA_PERSONAL_TOKEN}"
+CFG
+) || {
   # curl itself failed (DNS, TLS, timeout) — without this, set -e would abort silently
   echo "curl failed (exit $?) reaching $BASE — check JIRA_URL, VPN and TLS" >&2
   exit 1

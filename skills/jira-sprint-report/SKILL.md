@@ -62,7 +62,7 @@ which board, then tell the user to save it in `config.json`.
 ```
 jira_get_sprint_issues(
   sprint_id="<id>", start_at=0, limit=50,
-  fields="summary,status,issuetype,assignee,priority,resolutiondate")
+  fields="summary,status,issuetype,assignee,priority,resolutiondate,fixVersions")
 ```
 
 Repeat with `start_at=50`, `100`, … until the collected count reaches `total`. Never report
@@ -117,7 +117,8 @@ Ask the user where to put the HTML. Dump the collected data as UTF-8 JSON:
 
 Keep the issue objects as-is — `render.py` reads `key`, `summary`, `browse_url`,
 `status.name`, `status.category`, `issue_type.name`, `assignee.display_name`,
-`priority.name`, `resolutiondate`, `work_summary`, and ignores the rest. It dedupes by `key`.
+`priority.name`, `fix_versions[].name` (or `fixVersions`), `resolutiondate`, `work_summary`,
+and ignores the rest. It dedupes by `key`.
 
 ```bash
 python <skill-dir>/render.py sprint.json out.html ["Assignee Name"]
@@ -138,7 +139,7 @@ velocity or story points — the report counts issues, not points.
 - "Done" is Jira's status **category**, not the status name. Custom statuses like `Terminated`
   or `Closed` also land in category `Done`; filtering on the literal name undercounts.
 - Output is one HTML file: inline CSS, inline SVG charts, and a small inline script for the
-  Type / Status filters and sortable column headers. Fixed light theme.
+  Type / Status / Fix Version/s filters and sortable column headers. Fixed light theme.
 - Filters and sorting drive the issue table only; the charts stay as rendered.
 - The filter select ids and the JS id array must stay in sync. Dropping a filter without
   editing the array leaves a `getElementById` returning null, and the resulting TypeError

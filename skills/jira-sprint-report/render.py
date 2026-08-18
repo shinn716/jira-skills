@@ -115,6 +115,12 @@ def work_note(issue):
     return f'<div class="note">{"".join(out)}</div>'
 
 
+def fix_versions(issue):
+    """Fix Version/s as a list of names. Jira gives dicts; plain strings are accepted too."""
+    raw = issue.get("fix_versions") or issue.get("fixVersions") or []
+    return [v.get("name", "") if isinstance(v, dict) else str(v) for v in raw if v]
+
+
 def fmt_date(s):
     if not s:
         return "-"
@@ -148,6 +154,7 @@ def main():
         it["_type"] = get(it, "issue_type", "name", default="-")
         it["_assignee"] = get(it, "assignee", "display_name", default="Unassigned") or "Unassigned"
         it["_prio"] = get(it, "priority", "name", default="-")
+        it["_fix"] = fix_versions(it)
 
     # personal report: the body is my issues, the team only shows up as a comparison strip
     # argv wins over the JSON, which wins over config.json — so the same dump can be
@@ -171,6 +178,7 @@ def main():
     by_status = Counter(r["_status"] for r in mine).most_common()
     by_type = Counter(r["_type"] for r in mine).most_common()
     by_prio = Counter(r["_prio"] for r in mine).most_common()
+    by_fix = Counter(v for r in mine for v in r["_fix"]).most_common()
 
     tiles = [
         ("My issues", total, ""),
@@ -189,18 +197,21 @@ def main():
             cat = r["_cat"]
             colour = CATEGORY.get(cat, ("", "#78909c"))[1]
             out.append(
-                f'<tr data-a="{esc(r["_assignee"])}" data-t="{esc(r["_type"])}" data-s="{esc(r["_status"])}">'
+                f'<tr data-a="{esc(r["_assignee"])}" data-t="{esc(r["_type"])}" data-s="{esc(r["_status"])}"'
+                # pipe-wrapped so the JS can substring-match one version on a multi-version row
+                f' data-v="|{esc("|".join(r["_fix"]))}|">'
                 f'<td><a href="{esc(r.get("browse_url"))}" target="_blank" rel="noopener">{esc(r.get("key"))}</a></td>'
                 f'<td>{esc(r.get("summary"))}{work_note(r)}</td>'
                 f'<td>{esc(r["_type"])}</td>'
                 f'<td><span class="pill" style="background:{colour}">{esc(r["_status"])}</span></td>'
                 f'<td>{esc(r["_prio"])}</td>'
+                f'<td>{esc(", ".join(r["_fix"]) or "-")}</td>'
                 f'<td>{esc(fmt_date(r.get("resolutiondate")))}</td>'
                 "</tr>")
-        return "".join(out) or '<tr><td colspan="6" class="empty">none</td></tr>'
+        return "".join(out) or '<tr><td colspan="7" class="empty">none</td></tr>'
 
     head = ("<tr><th>Key</th><th>Summary</th><th>Type</th><th>Status</th>"
-            "<th>Priority</th><th>Resolved</th></tr>")
+            "<th>Priority</th><th>Fix Version/s</th><th>Resolved</th></tr>")
     legend = "".join(
         f'<span class="lg"><i style="background:{col}"></i>{esc(lbl)} {n}</span>'
         for lbl, n, col in by_cat)
@@ -212,7 +223,8 @@ def main():
                 f'<option value="">All</option>{opts}</select></label>')
 
     filters = ("".join([select("f-t", "Type", by_type),
-                        select("f-s", "Status", by_status)])
+                        select("f-s", "Status", by_status),
+                        select("f-v", "Fix Version/s", by_fix)])
                + '<button id="f-reset" type="button">Reset</button>')
 
     # team comparison strip: everyone's load, mine highlighted
@@ -328,15 +340,18 @@ Tiles, charts and tables cover {esc(me)} only; the team comparison block is the 
 Filters affect the two tables, not the charts.</footer>
 <script>
 (function () {{
-  var sel = ["f-t", "f-s"].map(function (id) {{ return document.getElementById(id); }});
-  var keys = ["t", "s"];
+  var sel = ["f-t", "f-s", "f-v"].map(function (id) {{ return document.getElementById(id); }});
+  var keys = ["t", "s", "v"];
   function apply() {{
     var shown = 0;
     document.querySelectorAll("table.ft").forEach(function (tbl) {{
       var n = 0;
       tbl.querySelectorAll("tbody tr[data-a]").forEach(function (tr) {{
         var ok = keys.every(function (k, i) {{
-          return !sel[i].value || tr.dataset[k] === sel[i].value;
+          if (!sel[i].value) return true;
+          // a row can carry several fix versions, so that one matches on substring
+          return k === "v" ? tr.dataset.v.indexOf("|" + sel[i].value + "|") >= 0
+                           : tr.dataset[k] === sel[i].value;
         }});
         tr.hidden = !ok;
         if (ok) n++;

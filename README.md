@@ -4,7 +4,7 @@ Two skills for **Jira Server / Data Center**, built around the read-only Jira MC
 
 | Skill | What it does |
 |---|---|
-| `jira-sync` | Reads the current git branch, writes a ≤250-char change summary, posts it as a comment on the ticket named by the branch (`feature/PROJ-123` → `PROJ-123`). |
+| `jira-sync` | Reads the current git branch, writes a ≤500-char change summary, posts it as a comment on the ticket named by the branch (`feature/PROJ-123` → `PROJ-123`). |
 | `jira-sprint-report` | Pulls a sprint, renders one person's work as a self-contained HTML file: stats, SVG charts, a sortable/filterable issue table, a written summary per closed ticket, and a team comparison block. |
 
 They compose: `jira-sync` posts the write-up at merge time, `jira-sprint-report` harvests
@@ -65,15 +65,73 @@ opencode also reads Claude-compatible paths, so `~/.claude/skills/` or a project
 
 ## Setup
 
-### jira-sync — two environment variables
+### JIRA_URL and JIRA_PERSONAL_TOKEN
+
+`post-comment.sh` reads both from the environment and exits with a named error if either is
+missing. The MCP server wants the same pair (see below).
+
+**1. Create the token.** Jira → avatar → **Profile** → **Personal Access Tokens** → *Create
+token*. Name it, set an expiry, copy the value — Jira shows it once. The token inherits your
+own permissions, so it can comment on exactly the tickets you can.
+
+Personal Access Tokens are Jira **Server / Data Center** (8.14+). On Jira Cloud the same
+menu gives an API token that authenticates as `email:token` over Basic, not Bearer — see
+"Not for Jira Cloud" above.
+
+**2. Set the variables.** `JIRA_URL` is the base URL, no trailing path — `/rest/...` is
+appended by the script. A trailing slash is stripped for you.
+
+Simplest with Claude Code: the `env` block of **`~/.claude/settings.json`**. Every Bash tool
+call inherits it, so `post-comment.sh` works in any project without touching your shell
+profile:
+
+```json
+{
+  "env": {
+    "JIRA_URL": "https://jira.example.com",
+    "JIRA_PERSONAL_TOKEN": "NDU2..."
+  }
+}
+```
+
+Merge into the existing `env` object if you already have one, and restart Claude Code.
+Put it in the **user-level** `~/.claude/settings.json`, never in a project's
+`.claude/settings.json` — that file gets committed. The token sits in plaintext either way,
+so treat the file like an SSH key: user-only permissions, no syncing it into a repo.
+
+Other agents, or if you would rather not keep a token in a config file — shell environment,
+persisted in `~/.bashrc` / `~/.zshrc`:
 
 ```bash
 export JIRA_URL=https://jira.example.com
-export JIRA_PERSONAL_TOKEN=...    # Jira → Profile → Personal Access Tokens
+export JIRA_PERSONAL_TOKEN=NDU2...          # the value you just copied
 ```
 
-Nothing is written to disk, so the token cannot be committed by accident. On Windows use
-`setx` and open a new terminal.
+Windows, from PowerShell — `setx` writes to the user environment, so **open a new terminal**
+afterwards:
+
+```powershell
+setx JIRA_URL "https://jira.example.com"
+setx JIRA_PERSONAL_TOKEN "NDU2..."
+```
+
+**3. Check it works.** 200 with your account name means both variables are right:
+
+```bash
+curl -s -H "Authorization: Bearer $JIRA_PERSONAL_TOKEN" \
+  "$JIRA_URL/rest/api/2/myself" | head -c 200
+```
+
+`401` → bad or expired token. `404` on a ticket that exists → wrong `JIRA_URL`. `curl failed`
+→ DNS, VPN or TLS, not auth.
+
+**Optional: `JIRA_COMMENT_MAX`.** Caps the comment length in characters — default `500`, `0`
+disables the check. Set it the same way as the two above. `post-comment.sh` counts characters
+(CJK counts as 1 each) and refuses to post an over-long body rather than truncating it.
+
+Nothing is written to disk by the skills, so the token cannot be committed by accident. Keep
+it out of `config.json`, out of commit messages and out of Jira comments; rotate it from the
+same Profile page if it leaks.
 
 ### jira-sprint-report — a config file
 
@@ -97,7 +155,7 @@ Assignee resolution, first hit wins: CLI argument → `"me"` in the input JSON �
 
 ### MCP server
 
-Both skills read through an Atlassian MCP server, e.g.:
+Both skills read through an Atlassian MCP server, using the same URL and token as above:
 
 ```json
 {
@@ -111,6 +169,10 @@ Both skills read through an Atlassian MCP server, e.g.:
   }
 }
 ```
+
+Claude Code expands `${JIRA_URL}` / `${JIRA_PERSONAL_TOKEN}` in MCP config values, so if you
+took the `settings.json` route above you can reference them here instead of pasting the token
+a second time.
 
 Codex wants the same server in `~/.codex/config.toml`:
 

@@ -3,7 +3,7 @@
   "name": "jira-skills",
   "description": "Jira Server/DC skills: branch-to-ticket change summaries and standalone HTML sprint reports.",
   "owner": {
-    "name": "john.tc.tsai"
+    "name": "shinn716"
   },
   "plugins": [
     {
