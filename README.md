@@ -1,27 +1,54 @@
 # jira-skills
 
-Two skills for **Jira Server / Data Center**, built around the read-only Jira MCP server:
+English | [繁體中文](README.zh-TW.md)
+
+Five skills for **Jira Server / Data Center**, built around the read-only Jira MCP server:
 
 | Skill | What it does |
 |---|---|
+| `jira-refine` | Reads a ticket's title and description, analyses this repo, and rewrites the description as a solution spec — tables, a numbered flow, bullet lists. Backs up the old description first. |
+| `jira-implement` | Reads the ticket (the `jira-refine` spec if there is one), branches, works through its solution steps in code, and verifies against the ticket's acceptance conditions. Touches the repo only, never Jira. |
 | `jira-sync` | Reads the current git branch, writes a ≤1000-char change summary in Jira wiki markup, posts it as a comment on the ticket named by the branch (`feature/PROJ-123` → `PROJ-123`). |
+| `jira-goal` | Goal mode: one approval up front, then refine → implement → loop until every acceptance condition passes → post the summary. Halts on ambiguity, credentials, or anything outward-facing. |
 | `jira-sprint-report` | Pulls a sprint, renders one person's work as a self-contained HTML file: stats, SVG charts, a sortable/filterable issue table, a written summary per closed ticket, and a team comparison block. |
 
-They compose: `jira-sync` posts the write-up at merge time, `jira-sprint-report` harvests
-those same comments at the end of the sprint.
+They compose along the life of a ticket: `jira-refine` writes the plan, `jira-implement`
+builds it, `jira-sync` posts the write-up at merge time, `jira-sprint-report` harvests those
+same comments at the end of the sprint. `jira-goal` chains the first three behind a single
+approval.
+
+## Goal mode, and what one approval buys
+
+`jira-goal` is the only skill that acts without asking per step. It asks once, up front, with
+the exact list of writes it will make, and that approval covers **one ticket, one run**:
+rewriting the description, editing code on a new branch, and posting the summary comment.
+
+**`git commit` and `git push` are never part of it.** The run ends with the changes
+uncommitted in the working tree; reviewing and committing them is yours, and it is the last
+human gate before the code becomes history. Because there are no commits, the summary comment
+is built from `git diff <mainline>` rather than the commit log.
+
+It also halts — approval or not — on an ambiguous requirement, a credential in the repo or
+ticket, work that needs another repo or ticket, or anything outward-facing (commit, push,
+merge, ticket transition, history rewrite). A stopped run reports; it does not post a "done"
+comment.
+
+Both Jira writes stay recoverable: the description is backed up to a file before it is
+replaced, and the comment is a comment.
 
 ## Not for Jira Cloud
 
-Comment bodies here are **wiki markup** and auth is a **Personal Access Token**. Jira Cloud
-uses ADF for comments and email + API token for auth — `post-comment.sh` will not work
-against Cloud unchanged. The read paths (sprint report) go through MCP and are more portable.
+Comment and description bodies here are **wiki markup** and auth is a **Personal Access
+Token**. Jira Cloud uses ADF and email + API token for auth — `post-comment.sh` and
+`update-description.sh` will not work against Cloud unchanged. The read paths (sprint
+report) go through MCP and are more portable.
 
 ## Install
 
-Both skills are plain [Agent Skills](https://developers.openai.com/codex/skills) — a
+All five are plain [Agent Skills](https://developers.openai.com/codex/skills) — a
 directory with a `SKILL.md` carrying `name` and `description`. Any agent that reads that
 format can run them. Only the Claude Code path uses the plugin marketplace; the rest is
-copying two directories.
+copying directories.
 
 ### Claude Code
 
@@ -31,13 +58,13 @@ claude plugin install jira-skills@jira-skills
 ```
 
 Or clone and add the local path (`claude plugin marketplace add /path/to/jira-skills`), or
-copy `skills/jira-sync` and `skills/jira-sprint-report` into `~/.claude/skills/`.
+copy `skills/*` into `~/.claude/skills/`.
 
 ### OpenAI Codex
 
 ```bash
 git clone https://github.com/shinn716/jira-skills
-cp -r jira-skills/skills/jira-sync  jira-skills/skills/jira-sprint-report  ~/.codex/skills/
+cp -r jira-skills/skills/* ~/.codex/skills/
 ```
 
 Project-scoped instead: copy into `.agents/skills/` and commit. `/skills` lists them, `$`
@@ -56,19 +83,19 @@ opencode also reads Claude-compatible paths, so `~/.claude/skills/` or a project
 
 - **MCP tool names are written bare** in the skills (`jira_get_sprint_issues`), not with
   Claude's `mcp__jira__` prefix. Each agent prefixes its own way; match on the suffix.
-- **Codex sandboxes network access by default.** `post-comment.sh` talks to Jira over HTTPS,
-  so it fails under the default sandbox — run Codex with network access enabled, or approve
-  the command when prompted. The sprint report is unaffected: it reads through MCP and
-  `render.py` only writes a local file.
+- **Codex sandboxes network access by default.** `post-comment.sh` and
+  `update-description.sh` talk to Jira over HTTPS, so they fail under the default sandbox —
+  run Codex with network access enabled, or approve the command when prompted. The sprint
+  report is unaffected: it reads through MCP and `render.py` only writes a local file.
 - **`render.py` needs Python 3 and nothing else**, so it runs the same everywhere.
-- `post-comment.sh` needs `bash`, `curl` and `python` on PATH. On Windows, Git Bash.
+- Both scripts need `bash`, `curl` and `python` on PATH. On Windows, Git Bash.
 
 ## Setup
 
 ### JIRA_URL and JIRA_PERSONAL_TOKEN
 
-`post-comment.sh` reads both from the environment and exits with a named error if either is
-missing. The MCP server wants the same pair (see below).
+`post-comment.sh` and `update-description.sh` read both from the environment and exit with a
+named error if either is missing. The MCP server wants the same pair (see below).
 
 **1. Create the token.** Jira → avatar → **Profile** → **Personal Access Tokens** → *Create
 token*. Name it, set an expiry, copy the value — Jira shows it once. The token inherits your
@@ -157,7 +184,7 @@ Assignee resolution, first hit wins: CLI argument → `"me"` in the input JSON �
 
 ### MCP server
 
-Both skills read through an Atlassian MCP server, using the same URL and token as above:
+All five skills read through an Atlassian MCP server, using the same URL and token as above:
 
 ```json
 {
@@ -188,9 +215,10 @@ env = { JIRA_URL = "https://jira.example.com", JIRA_PERSONAL_TOKEN = "...", READ
 opencode takes it under the `mcp` key of `opencode.json` (`"type": "local"`, `command` as an
 argv array).
 
-`READ_ONLY_MODE=true` is why `jira-sync` posts over REST instead of through MCP: a read-only
-server exposes no comment tool. Keeping it read-only means no skill can mutate a ticket by
-accident — the one write path is a single script that asks for confirmation first.
+`READ_ONLY_MODE=true` is why `jira-sync` and `jira-refine` write over REST instead of through
+MCP: a read-only server exposes no comment or update tool. Keeping it read-only means no skill
+can mutate a ticket by accident — the write paths are two scripts that ask for confirmation
+first, and `update-description.sh` backs up the old description before replacing it.
 
 ## Rendering a report by hand
 
@@ -214,7 +242,7 @@ python skills/jira-sprint-report/test_render.py   # same file, as a smoke test
 
 ## Handling secrets in tickets
 
-People paste keys, tokens and connection strings into Jira comments. Both skills are
+People paste keys, tokens and connection strings into Jira comments. All five skills are
 instructed to summarise the *fact* ("signing key rotated") and never copy the value into a
 report or a new comment. If you find a live credential in a ticket, the skill will say so
 instead of quietly propagating it.

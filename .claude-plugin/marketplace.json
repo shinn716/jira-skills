@@ -1,14 +1,14 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "jira-skills",
-  "description": "Jira Server/DC skills: branch-to-ticket change summaries and standalone HTML sprint reports.",
+  "description": "Jira Server/DC skills: ticket description refinement, ticket implementation, one-approval end-to-end runs, branch-to-ticket change summaries and standalone HTML sprint reports.",
   "owner": {
     "name": "shinn716"
   },
   "plugins": [
     {
       "name": "jira-skills",
-      "description": "Post a branch's change summary to its Jira ticket, and render a personal sprint report as one self-contained HTML file.",
+      "description": "Refine a Jira ticket description into a repo-grounded solution spec, implement the ticket in the repo, run the whole chain behind one approval, post a branch's change summary to its ticket, and render a personal sprint report as one self-contained HTML file.",
       "source": "./",
       "category": "productivity"
     }
