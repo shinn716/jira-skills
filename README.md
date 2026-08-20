@@ -14,9 +14,46 @@ Six skills for **Jira Server / Data Center**, built around the read-only Jira MC
 | `jira-sprint-report` | Pulls a sprint, renders one person's work as a self-contained HTML file: stats, SVG charts, a sortable/filterable issue table, a written summary per closed ticket, and a team comparison block. |
 
 They compose along the life of a ticket: `jira-refine` writes the plan, `jira-implement`
-builds it, `jira-commit` commits it and `jira-sync` posts the write-up, `jira-sprint-report` harvests
-those same comments at the end of the sprint. `jira-goal` chains refine, implement and sync
+builds it, `jira-commit` commits it and `jira-sync` posts the write-up, `jira-sprint-report`
+harvests those same comments at the end of the sprint. `jira-goal` chains refine, implement and sync
 behind a single approval.
+
+## Workflow
+
+Step by step, one skill at a time. The two boxes with a thick border are yours — nothing in
+this plugin commits or pushes for you:
+
+```mermaid
+flowchart TD
+    ticket([Jira ticket: title + description]) --> refine
+
+    refine["<b>jira-refine</b><br/>read thread, analyse repo,<br/>append spec below the original"]
+    implement["<b>jira-implement</b><br/>branch, code the Solution steps,<br/>run build / lint / tests"]
+    check{"every Acceptance<br/>Criterion verified?"}
+    commit["<b>jira-commit</b><br/>summarise the work,<br/>git commit"]
+    sync["<b>jira-sync</b><br/>≤1000-char summary<br/>as a ticket comment"]
+    push["<b>git push / merge</b><br/>you, by hand"]
+    report["<b>jira-sprint-report</b><br/>harvests those comments<br/>into one HTML file"]
+
+    goal["<b>jira-goal</b><br/>one approval, then refine → implement → sync<br/>unattended — skips the commit, that stays yours"]
+
+    refine --> implement --> check
+    check -- no --> implement
+    check -- yes --> commit --> sync --> push
+    sync -. end of sprint .-> report
+    goal -. covers .-> refine
+    goal -. covers .-> sync
+
+    classDef human stroke-width:3px
+    classDef auto stroke-dasharray:5 3
+    class commit,push human
+    class goal auto
+```
+
+Approvals along the way: `jira-refine` shows the new description before writing it,
+`jira-commit` shows the message before committing, `jira-sync` shows the comment before
+posting. `jira-goal` replaces those three prompts with a single one up front — its own
+diagram is in the next section.
 
 ## Goal mode, and what one approval buys
 
@@ -27,8 +64,8 @@ comment.
 
 **`git commit` and `git push` are never part of it.** The run ends with the changes
 uncommitted in the working tree; reviewing and committing them is yours (`jira-commit` does
-the commit once you have looked), and it is the last
-human gate before the code becomes history. Because there are no commits, the summary comment
+the commit once you have looked), and it is the last human gate before the code becomes
+history. Because there are no commits, the summary comment
 is built from `git diff <mainline>` rather than the commit log.
 
 It also halts — approval or not — on an ambiguous requirement, a credential in the repo or
@@ -39,6 +76,35 @@ comment.
 Both Jira writes stay recoverable: the reporter's original description is carried forward
 inside the new one and the whole field is backed up to a file first, and the comment is a
 comment.
+
+```mermaid
+flowchart TD
+    ask{{"one approval up front:<br/>description, code, comment"}}
+    ask -- no --> stop([nothing happens])
+    ask -- yes --> refine
+
+    subgraph run["runs unattended"]
+        refine["jira-refine<br/>append spec"]
+        implement["jira-implement<br/>branch, code, run checks"]
+        check{"every Acceptance<br/>Criterion passes?"}
+        sync["jira-sync<br/>summary from git diff,<br/>not the commit log"]
+
+        refine --> implement --> check
+        check -- "no, up to 5 passes" --> implement
+        check -- yes --> sync
+    end
+
+    check -- "same failure twice<br/>or 5 passes used" --> halt
+    refine -. "ambiguity, credential,<br/>needs another repo" .-> halt
+    implement -. same .-> halt
+
+    halt[["halts and reports<br/>no done comment"]]
+    sync --> left["work left uncommitted<br/>in the working tree"]
+    left --> you["<b>you</b>: review, commit, push"]
+
+    classDef human stroke-width:3px
+    class you,ask human
+```
 
 ## Not for Jira Cloud
 

@@ -17,6 +17,41 @@
 `jira-commit` 負責 commit，`jira-sync` 貼上變更說明，`jira-sprint-report` 到 sprint 結束時再把這些
 留言整理成報告。`jira-goal` 則是把 refine、implement、sync 包在同一次授權裡跑完。
 
+## 工作流程
+
+一次跑一個 skill 的走法。粗框的兩個框是你自己要做的，這個 plugin 不會幫你 commit 或 push：
+
+```mermaid
+flowchart TD
+    ticket([Jira ticket：標題 + 描述]) --> refine
+
+    refine["<b>jira-refine</b><br/>讀留言串、分析 repo，<br/>把規格接在原始描述下面"]
+    implement["<b>jira-implement</b><br/>開分支、把 Solution 寫成程式碼、<br/>跑 build / lint / 測試"]
+    check{"每條 Acceptance<br/>Criteria 都驗過了嗎？"}
+    commit["<b>jira-commit</b><br/>總結這次做的事，<br/>git commit"]
+    sync["<b>jira-sync</b><br/>1000 字元以內的摘要，<br/>貼成 ticket 留言"]
+    push["<b>git push / merge</b><br/>你自己手動"]
+    report["<b>jira-sprint-report</b><br/>把這些留言收成<br/>一個 HTML 檔"]
+
+    goal["<b>jira-goal</b><br/>授權一次，接著自己跑完 refine → implement → sync<br/>中間不做 commit，那一步還是你的"]
+
+    refine --> implement --> check
+    check -- 還沒 --> implement
+    check -- 過了 --> commit --> sync --> push
+    sync -. sprint 結束時 .-> report
+    goal -. 包辦 .-> refine
+    goal -. 包辦 .-> sync
+
+    classDef human stroke-width:3px
+    classDef auto stroke-dasharray:5 3
+    class commit,push human
+    class goal auto
+```
+
+中間會問你的地方：`jira-refine` 寫入前會先給你看新的描述，`jira-commit` commit 前會先給你看
+message，`jira-sync` 貼出去前會先給你看留言。`jira-goal` 則是把這三次詢問換成一開始問一次，
+它自己的流程圖在下一節。
+
 ## Goal 模式：那一次授權到底給了什麼
 
 `jira-goal` 是唯一一個不會每做一步就問你的 skill。它只在最前面問一次，而且會先把接下來要寫入的
@@ -34,6 +69,35 @@ merge、轉 ticket 狀態、改寫歷史）。中途停下來的執行只會回�
 
 兩種寫入 Jira 的動作都救得回來：提單人原本寫的描述會原封不動帶到新的描述裡，寫入前還會把
 整個欄位備份成檔案，留言本來就只是留言。
+
+```mermaid
+flowchart TD
+    ask{{"一開始問一次：<br/>描述、程式碼、留言"}}
+    ask -- 不要 --> stop([什麼都不做])
+    ask -- 好 --> refine
+
+    subgraph run["之後不再問，自己跑完"]
+        refine["jira-refine<br/>把規格接在描述下面"]
+        implement["jira-implement<br/>開分支、寫程式、跑檢查"]
+        check{"每條 Acceptance<br/>Criteria 都過了嗎？"}
+        sync["jira-sync<br/>摘要來自 git diff，<br/>不是 commit log"]
+
+        refine --> implement --> check
+        check -- "還沒，最多再跑 5 輪" --> implement
+        check -- 過了 --> sync
+    end
+
+    check -- "同一個錯連兩次<br/>或跑滿 5 輪" --> halt
+    refine -. "需求不明確、掃到憑證、<br/>要動到別的 repo" .-> halt
+    implement -. 同上 .-> halt
+
+    halt[["停下來回報現況<br/>不會貼「已完成」留言"]]
+    sync --> left["改動留在 working tree<br/>沒有 commit"]
+    left --> you["<b>你</b>：review、commit、push"]
+
+    classDef human stroke-width:3px
+    class you,ask human
+```
 
 ## 不支援 Jira Cloud
 
