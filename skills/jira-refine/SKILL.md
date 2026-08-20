@@ -60,13 +60,14 @@ they lead to different code — ask the user before writing, do not silently pic
 
 ### 3. Draft the description
 
-Keep the ticket's original intent. The rewrite **absorbs** the title and the old description;
-it does not discard requirements the reporter wrote. Anything you drop must be genuinely
-redundant, not merely inconvenient.
-
-Structure, in this order — tables, flow, bullets, nothing else:
+**The original description is never overwritten.** It stays at the top, word for word, under
+its own heading; the spec is appended below it. The reporter's wording is evidence of what
+was asked for — paraphrasing it loses the detail that turns out to matter three weeks later.
 
 ```
+h2. Original Request
+<the previous description, verbatim — not reformatted, not summarised, not corrected>
+
 h2. Background
 * one bullet per fact from the original ticket, kept
 * one bullet per constraint found in the repo
@@ -89,7 +90,19 @@ h2. Acceptance Criteria
 ```
 
 Headings in English, as above. If the team reads the ticket in another language, the user
-says so and you translate the five headings — the structure does not change.
+says so and you translate the six headings — the structure does not change.
+
+Tables, flow and bullets only, below `Original Request`. That section is the one exception:
+whatever the reporter wrote goes in as it is, prose and all.
+
+**Re-running this skill must not stack copies.** Read the current description first:
+
+- No `h2. Original Request` in it → the whole current text is the original. Put it under the
+  heading, append the spec.
+- Already has one → keep that block exactly as it stands and replace everything below it.
+  Never wrap a previous run's output into a new `Original Request`.
+
+If the description is empty, the ticket summary is all there is: skip the section and say so.
 
 Wiki markup rules that bite:
 
@@ -103,8 +116,10 @@ Wiki markup rules that bite:
 Content rules:
 
 - Every row of Current State and Impact names a real file. No speculative rows.
-- No prose paragraphs. If something does not fit a table, a numbered step or a bullet, it
-  does not belong in the description.
+- No prose paragraphs of your own. If something does not fit a table, a numbered step or a
+  bullet, it does not belong in the description.
+- A requirement from the original that you disagree with stays in `Original Request`
+  untouched; argue with it in `Background`, do not edit it away.
 - Do not invent numbers. Any metric must come from a code comment, a commit, the ticket, or
   something you actually measured — and say which.
 - **Never paste credentials.** Repos and tickets contain keys and connection strings; state
@@ -112,9 +127,11 @@ Content rules:
 
 ### 4. Confirm, then write
 
-**Overwriting a description destroys what the reporter wrote.** Show the full rendered text
-to the user and get an explicit go-ahead before writing. "Refine PROJ-123 and update it" in
-the same turn counts as the go-ahead; anything less does not.
+The description field is replaced wholesale by the REST call, even though the text you send
+starts with the original. So the body you post must **contain** the original — check that it
+does before posting, character for character. Show the full rendered text to the user and get
+an explicit go-ahead. "Refine PROJ-123 and update it" in the same turn counts as the
+go-ahead; anything less does not.
 
 Write the body to a temp file (UTF-8), then:
 
@@ -130,6 +147,9 @@ the user.
 
 - Analysis only — this skill never edits code, commits, or merges. It reads the repo and
   writes one Jira field.
-- Restoring: `bash update-description.sh PROJ-123 <backup-file>` puts the old text back.
+- The reporter's text survives every run: it sits under `h2. Original Request` and only ever
+  gets copied forward, never edited.
+- Restoring anyway: `bash update-description.sh PROJ-123 <backup-file>` puts the whole
+  previous field back, spec included.
 - Pairs with `jira-sync`: `jira-refine` writes the plan onto the ticket before the work,
   `jira-sync` posts what actually changed after it.

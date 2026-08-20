@@ -6,7 +6,7 @@ Five skills for **Jira Server / Data Center**, built around the read-only Jira M
 
 | Skill | What it does |
 |---|---|
-| `jira-refine` | Reads a ticket's title and description, analyses this repo, and rewrites the description as a solution spec — tables, a numbered flow, bullet lists. Backs up the old description first. |
+| `jira-refine` | Reads a ticket's title and description, analyses this repo, and appends a solution spec — tables, a numbered flow, bullet lists — below the original text, which is kept verbatim under `h2. Original Request`. Backs up the whole field first. |
 | `jira-implement` | Reads the ticket (the `jira-refine` spec if there is one), branches, works through its solution steps in code, and verifies against the ticket's acceptance conditions. Touches the repo only, never Jira. |
 | `jira-sync` | Reads the current git branch, writes a ≤1000-char change summary in Jira wiki markup, posts it as a comment on the ticket named by the branch (`feature/PROJ-123` → `PROJ-123`). |
 | `jira-goal` | Goal mode: one approval up front, then refine → implement → loop until every acceptance condition passes → post the summary. Halts on ambiguity, credentials, or anything outward-facing. |
@@ -21,7 +21,8 @@ approval.
 
 `jira-goal` is the only skill that acts without asking per step. It asks once, up front, with
 the exact list of writes it will make, and that approval covers **one ticket, one run**:
-rewriting the description, editing code on a new branch, and posting the summary comment.
+appending the spec to the description, editing code on a new branch, and posting the summary
+comment.
 
 **`git commit` and `git push` are never part of it.** The run ends with the changes
 uncommitted in the working tree; reviewing and committing them is yours, and it is the last
@@ -33,8 +34,9 @@ ticket, work that needs another repo or ticket, or anything outward-facing (comm
 merge, ticket transition, history rewrite). A stopped run reports; it does not post a "done"
 comment.
 
-Both Jira writes stay recoverable: the description is backed up to a file before it is
-replaced, and the comment is a comment.
+Both Jira writes stay recoverable: the reporter's original description is carried forward
+inside the new one and the whole field is backed up to a file first, and the comment is a
+comment.
 
 ## Not for Jira Cloud
 

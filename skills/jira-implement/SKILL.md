@@ -18,7 +18,9 @@ gets its update from `jira-sync` after the branch merges. This skill only touche
 Key comes from the user, or from the current branch (`git rev-parse --abbrev-ref HEAD`,
 match `[A-Z][A-Z0-9_]+-[0-9]+`). No key, no guessing — ask.
 
-Read summary, description, issue type, **and the comment thread**. A later comment routinely
+Read summary, description, issue type, **and the comment thread**. A refined ticket keeps
+the reporter's words under `h2. Original Request` above the spec — read that section too, the
+spec is one reading of it and can be wrong. A later comment routinely
 narrows or reverses the description; the thread wins over the description, the description
 wins over the title.
 

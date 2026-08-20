@@ -25,7 +25,8 @@ State the plan concretely and get an explicit yes:
 Goal run on PROJ-123 — "<ticket summary>"
 
 Will do, without asking again:
-  1. rewrite the description of PROJ-123   (old text backed up to a file)
+  1. append a solution spec to the description of PROJ-123
+     (original text kept at the top, whole field backed up to a file)
   2. branch feature/PROJ-123-<slug> off <mainline>, edit code, run the repo's checks
   3. loop 2 until every Acceptance Criterion passes (max 5 passes)
   4. post a change summary as a comment on PROJ-123
@@ -48,11 +49,11 @@ not the approval, the answer to this message is.
 ### 1. Refine
 
 Run `jira-refine` fully: read the ticket and thread, analyse the repo, draft the structured
-description, write it with `update-description.sh`.
+spec, append it under the untouched original, write it with `update-description.sh`.
 
 Difference under goal mode: you do not stop for the "show and confirm" step — the gate
 covered it. Still print the description you wrote and the backup path, so the user can see
-what landed and revert it.
+what landed and revert it. Check the original text is still in there before posting.
 
 Skip this phase if the description already has the `jira-refine` structure and matches the
 current repo. Say that you skipped it and why.
@@ -123,7 +124,7 @@ One block at the end, regardless of how the run finished:
 
 ```
 PROJ-123 — <finished | stopped at phase N>
-description   updated (backup: /tmp/jira-PROJ-123-description-….txt)
+description   spec appended, original kept (backup: /tmp/jira-PROJ-123-description-….txt)
 branch        feature/PROJ-123-slug, N files changed, uncommitted
 verified      3/4 acceptance criteria — <condition> unverified: needs staging
 comment       <browse url>

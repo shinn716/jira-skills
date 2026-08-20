@@ -6,7 +6,7 @@
 
 | Skill | 用途 |
 |---|---|
-| `jira-refine` | 讀 ticket 的標題和描述，分析這個 repo，再把描述改寫成一份解決方案規格：表格、編號流程、條列。改寫前會先備份舊的描述。 |
+| `jira-refine` | 讀 ticket 的標題和描述，分析這個 repo，再把解決方案規格（表格、編號流程、條列）接在原本的描述下面。原始描述一字不改，放在最上面的 `h2. Original Request`，寫入前還會先備份整個欄位。 |
 | `jira-implement` | 讀 ticket（如果已經有 `jira-refine` 整理過的規格就照著做），開分支、把 Solution 一步步寫成程式碼，再對照 Acceptance Criteria 驗證。只動 repo，不會寫回 Jira。 |
 | `jira-sync` | 讀目前的 git 分支，用 Jira wiki markup 寫一份 1000 字元以內的變更摘要，貼到分支對應的 ticket 留言（`feature/PROJ-123` 對到 `PROJ-123`）。 |
 | `jira-goal` | Goal 模式：一開始授權一次，之後就自己跑完 refine、implement、反覆修到每條 Acceptance Criteria 都過，最後貼上摘要。遇到需求不明確、掃到憑證、或任何對外的動作就停下來。 |
@@ -19,8 +19,8 @@
 ## Goal 模式：那一次授權到底給了什麼
 
 `jira-goal` 是唯一一個不會每做一步就問你的 skill。它只在最前面問一次，而且會先把接下來要寫入的
-動作全部列出來。這次授權只算 **一張 ticket、一次執行**，範圍是三件事：改寫描述、在新分支上改程式碼、
-貼出摘要留言。
+動作全部列出來。這次授權只算 **一張 ticket、一次執行**，範圍是三件事：把規格接在描述下面、在新分支上改
+程式碼、貼出摘要留言。
 
 **`git commit` 和 `git push` 永遠不包含在裡面。** 跑完之後改動會留在 working tree，要不要
 commit 由你自己 review 後決定，這是程式碼進到 git 歷史前最後一道人工關卡。也因為沒有 commit，
@@ -30,7 +30,8 @@ commit 由你自己 review 後決定，這是程式碼進到 git 歷史前最後
 ticket 裡出現憑證、這件事得動到別的 repo 或別的 ticket、任何對外或破壞性的動作（commit、push、
 merge、轉 ticket 狀態、改寫歷史）。中途停下來的執行只會回報現況，不會貼「已完成」的留言。
 
-兩種寫入 Jira 的動作都救得回來：描述在被蓋掉之前會先備份成檔案，留言本來就只是留言。
+兩種寫入 Jira 的動作都救得回來：提單人原本寫的描述會原封不動帶到新的描述裡，寫入前還會把
+整個欄位備份成檔案，留言本來就只是留言。
 
 ## 不支援 Jira Cloud
 
@@ -201,7 +202,8 @@ opencode 則是放在 `opencode.json` 的 `mcp` 底下（`"type": "local"`，`co
 
 `READ_ONLY_MODE=true` 就是為什麼 `jira-sync` 和 `jira-refine` 是走 REST 而不是走 MCP 寫入：
 唯讀的 server 根本不會開留言或更新的 tool。維持唯讀的好處是不會有 skill 不小心改到 ticket，
-會寫入的就只有那兩支 script，而且都會先要你確認，`update-description.sh` 還會在覆蓋前備份舊描述。
+會寫入的就只有那兩支 script，而且都會先要你確認，`update-description.sh` 還會在寫入前把整個
+描述欄位備份起來。
 
 ## 自己手動產報告
 
