@@ -25,23 +25,12 @@ this plugin commits or pushes for you:
 
 ```mermaid
 flowchart TD
-    ticket([Jira ticket: title + description]) --> refine
-
-    refine["<b>jira-refine</b><br/>read thread, analyse repo,<br/>append spec below the original"]
-    implement["<b>jira-implement</b><br/>branch, code the Solution steps,<br/>run build / lint / tests"]
-    check{"every Acceptance<br/>Criterion verified?"}
-    commit["<b>jira-commit</b><br/>summarise the work,<br/>git commit"]
-    sync["<b>jira-sync</b><br/>≤1000-char summary<br/>as a ticket comment"]
-    push["<b>git push / merge</b><br/>you, by hand"]
-    report["<b>jira-sprint-report</b><br/>harvests those comments<br/>into one HTML file"]
-
-    goal["<b>jira-goal</b><br/>one approval, then refine → implement → sync<br/>unattended — skips the commit, that stays yours"]
-
-    refine --> implement --> check
+    ticket([ticket]) --> refine
+    refine["<b>jira-refine</b><br/>spec appended"] --> implement["<b>jira-implement</b><br/>branch + code"] --> check{"verified?"}
     check -- no --> implement
-    check -- yes --> commit --> sync --> push
-    sync -. end of sprint .-> report
-    goal -. covers .-> refine
+    check -- yes --> commit["<b>jira-commit</b><br/>commit"] --> sync["<b>jira-sync</b><br/>comment"] --> push["push / merge"]
+    sync -. sprint end .-> report["jira-sprint-report"]
+    goal["<b>jira-goal</b><br/>one approval, no commit"] -. covers .-> refine
     goal -. covers .-> sync
 
     classDef human stroke-width:3px
@@ -79,28 +68,19 @@ comment.
 
 ```mermaid
 flowchart TD
-    ask{{"one approval up front:<br/>description, code, comment"}}
-    ask -- no --> stop([nothing happens])
+    ask{{"approve once"}} -- no --> stop([nothing happens])
     ask -- yes --> refine
 
-    subgraph run["runs unattended"]
-        refine["jira-refine<br/>append spec"]
-        implement["jira-implement<br/>branch, code, run checks"]
-        check{"every Acceptance<br/>Criterion passes?"}
-        sync["jira-sync<br/>summary from git diff,<br/>not the commit log"]
-
-        refine --> implement --> check
-        check -- "no, up to 5 passes" --> implement
-        check -- yes --> sync
+    subgraph run["unattended"]
+        direction TB
+        refine["refine"] --> implement["implement"] --> check{"all pass?"}
+        check -- "no, ≤5 passes" --> implement
+        check -- yes --> sync["sync"]
     end
 
-    check -- "same failure twice<br/>or 5 passes used" --> halt
-    refine -. "ambiguity, credential,<br/>needs another repo" .-> halt
-    implement -. same .-> halt
-
-    halt[["halts and reports<br/>no done comment"]]
-    sync --> left["work left uncommitted<br/>in the working tree"]
-    left --> you["<b>you</b>: review, commit, push"]
+    check -- "stuck / 5 used" --> halt
+    implement -. "ambiguity, credential" .-> halt[["halts, reports,<br/>no done comment"]]
+    sync --> you["<b>you</b><br/>review, commit, push"]
 
     classDef human stroke-width:3px
     class you,ask human

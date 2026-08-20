@@ -23,23 +23,12 @@
 
 ```mermaid
 flowchart TD
-    ticket([Jira ticket：標題 + 描述]) --> refine
-
-    refine["<b>jira-refine</b><br/>讀留言串、分析 repo，<br/>把規格接在原始描述下面"]
-    implement["<b>jira-implement</b><br/>開分支、把 Solution 寫成程式碼、<br/>跑 build / lint / 測試"]
-    check{"每條 Acceptance<br/>Criteria 都驗過了嗎？"}
-    commit["<b>jira-commit</b><br/>總結這次做的事，<br/>git commit"]
-    sync["<b>jira-sync</b><br/>1000 字元以內的摘要，<br/>貼成 ticket 留言"]
-    push["<b>git push / merge</b><br/>你自己手動"]
-    report["<b>jira-sprint-report</b><br/>把這些留言收成<br/>一個 HTML 檔"]
-
-    goal["<b>jira-goal</b><br/>授權一次，接著自己跑完 refine → implement → sync<br/>中間不做 commit，那一步還是你的"]
-
-    refine --> implement --> check
+    ticket([ticket]) --> refine
+    refine["<b>jira-refine</b><br/>接上規格"] --> implement["<b>jira-implement</b><br/>開分支、寫程式"] --> check{"驗過了？"}
     check -- 還沒 --> implement
-    check -- 過了 --> commit --> sync --> push
-    sync -. sprint 結束時 .-> report
-    goal -. 包辦 .-> refine
+    check -- 過了 --> commit["<b>jira-commit</b><br/>commit"] --> sync["<b>jira-sync</b><br/>貼留言"] --> push["push / merge"]
+    sync -. sprint 結束 .-> report["jira-sprint-report"]
+    goal["<b>jira-goal</b><br/>授權一次，不做 commit"] -. 包辦 .-> refine
     goal -. 包辦 .-> sync
 
     classDef human stroke-width:3px
@@ -72,28 +61,19 @@ merge、轉 ticket 狀態、改寫歷史）。中途停下來的執行只會回�
 
 ```mermaid
 flowchart TD
-    ask{{"一開始問一次：<br/>描述、程式碼、留言"}}
-    ask -- 不要 --> stop([什麼都不做])
+    ask{{"開頭授權一次"}} -- 不要 --> stop([什麼都不做])
     ask -- 好 --> refine
 
-    subgraph run["之後不再問，自己跑完"]
-        refine["jira-refine<br/>把規格接在描述下面"]
-        implement["jira-implement<br/>開分支、寫程式、跑檢查"]
-        check{"每條 Acceptance<br/>Criteria 都過了嗎？"}
-        sync["jira-sync<br/>摘要來自 git diff，<br/>不是 commit log"]
-
-        refine --> implement --> check
-        check -- "還沒，最多再跑 5 輪" --> implement
-        check -- 過了 --> sync
+    subgraph run["之後不再問"]
+        direction TB
+        refine["refine"] --> implement["implement"] --> check{"都過了？"}
+        check -- "還沒，最多 5 輪" --> implement
+        check -- 過了 --> sync["sync"]
     end
 
-    check -- "同一個錯連兩次<br/>或跑滿 5 輪" --> halt
-    refine -. "需求不明確、掃到憑證、<br/>要動到別的 repo" .-> halt
-    implement -. 同上 .-> halt
-
-    halt[["停下來回報現況<br/>不會貼「已完成」留言"]]
-    sync --> left["改動留在 working tree<br/>沒有 commit"]
-    left --> you["<b>你</b>：review、commit、push"]
+    check -- "卡住 / 跑滿 5 輪" --> halt
+    implement -. "需求不明、掃到憑證" .-> halt[["停下來回報，<br/>不貼「已完成」"]]
+    sync --> you["<b>你</b><br/>review、commit、push"]
 
     classDef human stroke-width:3px
     class you,ask human
