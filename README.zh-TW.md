@@ -2,19 +2,20 @@
 
 繁體中文 | [English](README.md)
 
-五個給 **Jira Server / Data Center** 用的 skill，都架在唯讀的 Jira MCP server 上：
+六個給 **Jira Server / Data Center** 用的 skill，都架在唯讀的 Jira MCP server 上：
 
 | Skill | 用途 |
 |---|---|
 | `jira-refine` | 讀 ticket 的標題和描述，分析這個 repo，再把解決方案規格（表格、編號流程、條列）接在原本的描述下面。原始描述一字不改，放在最上面的 `h2. Original Request`，寫入前還會先備份整個欄位。 |
 | `jira-implement` | 讀 ticket（如果已經有 `jira-refine` 整理過的規格就照著做），開分支、把 Solution 一步步寫成程式碼，再對照 Acceptance Criteria 驗證。只動 repo，不會寫回 Jira。 |
+| `jira-commit` | 讀 working tree 的改動，寫一則摘要「做了什麼」（而不是複述 diff）的 commit message，commit 完再接著跑 `jira-sync`。不會 push。 |
 | `jira-sync` | 讀目前的 git 分支，用 Jira wiki markup 寫一份 1000 字元以內的變更摘要，貼到分支對應的 ticket 留言（`feature/PROJ-123` 對到 `PROJ-123`）。 |
 | `jira-goal` | Goal 模式：一開始授權一次，之後就自己跑完 refine、implement、反覆修到每條 Acceptance Criteria 都過，最後貼上摘要。遇到需求不明確、掃到憑證、或任何對外的動作就停下來。 |
 | `jira-sprint-report` | 抓一個 sprint，把某個人的產出做成單一個 HTML 檔：統計、SVG 圖表、可排序和過濾的 issue 表格、每張結案 ticket 的文字摘要，還有團隊比較區塊。 |
 
-這五個是照著一張 ticket 的生命週期串起來的：`jira-refine` 先寫計畫，`jira-implement` 把它做出來，
-`jira-sync` 在合併時貼上說明，`jira-sprint-report` 到 sprint 結束時再把這些留言整理成報告。
-`jira-goal` 則是把前三個包在同一次授權裡跑完。
+這六個是照著一張 ticket 的生命週期串起來的：`jira-refine` 先寫計畫，`jira-implement` 把它做出來，
+`jira-commit` 負責 commit，`jira-sync` 貼上變更說明，`jira-sprint-report` 到 sprint 結束時再把這些
+留言整理成報告。`jira-goal` 則是把 refine、implement、sync 包在同一次授權裡跑完。
 
 ## Goal 模式：那一次授權到底給了什麼
 
@@ -23,8 +24,9 @@
 程式碼、貼出摘要留言。
 
 **`git commit` 和 `git push` 永遠不包含在裡面。** 跑完之後改動會留在 working tree，要不要
-commit 由你自己 review 後決定，這是程式碼進到 git 歷史前最後一道人工關卡。也因為沒有 commit，
-摘要留言是拿 `git diff <mainline>` 生出來的，不是讀 commit log。
+commit 由你自己 review 後決定（看過之後可以用 `jira-commit` 來 commit），這是程式碼進到 git
+歷史前最後一道人工關卡。也因為沒有 commit，摘要留言是拿 `git diff <mainline>` 生出來的，
+不是讀 commit log。
 
 不管有沒有授權，碰到下面這些狀況一律停下來：需求有兩種以上解讀而且會寫出不同的程式碼、repo 或
 ticket 裡出現憑證、這件事得動到別的 repo 或別的 ticket、任何對外或破壞性的動作（commit、push、
@@ -41,7 +43,7 @@ Cloud 上跑不動。讀取的部分（sprint 報告）走 MCP，比較不挑環
 
 ## 安裝
 
-這五個都是單純的 [Agent Skills](https://developers.openai.com/codex/skills)：一個資料夾，裡面放
+這六個都是單純的 [Agent Skills](https://developers.openai.com/codex/skills)：一個資料夾，裡面放
 一份有 `name` 和 `description` 的 `SKILL.md`。只要看得懂這個格式的 agent 都跑得起來。只有
 Claude Code 這條路會用到 plugin marketplace，其他就是複製資料夾而已。
 
@@ -171,7 +173,7 @@ skill 本身不會把 token 寫到任何地方，但上面 `settings.json` 那�
 
 ### MCP server
 
-五個 skill 讀資料都是走 Atlassian MCP server，用的是跟上面同一組 URL 和 token：
+六個 skill 讀資料都是走 Atlassian MCP server，用的是跟上面同一組 URL 和 token：
 
 ```json
 {
@@ -226,7 +228,7 @@ python skills/jira-sprint-report/test_render.py   # 同一份檔案，拿來當 
 
 ## ticket 裡的機密怎麼處理
 
-大家很習慣把金鑰、token、連線字串直接貼進 Jira 留言。這五個 skill 都被要求只描述「這件事」
+大家很習慣把金鑰、token、連線字串直接貼進 Jira 留言。這六個 skill 都被要求只描述「這件事」
 （例如「簽章金鑰已更換」），絕對不把值本身複製進報告或新留言。如果在 ticket 裡看到還有效的憑證，
 skill 會直接告訴你，而不是默默地把它再傳一手出去。
 

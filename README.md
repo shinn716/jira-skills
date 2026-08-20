@@ -2,20 +2,21 @@
 
 English | [繁體中文](README.zh-TW.md)
 
-Five skills for **Jira Server / Data Center**, built around the read-only Jira MCP server:
+Six skills for **Jira Server / Data Center**, built around the read-only Jira MCP server:
 
 | Skill | What it does |
 |---|---|
 | `jira-refine` | Reads a ticket's title and description, analyses this repo, and appends a solution spec — tables, a numbered flow, bullet lists — below the original text, which is kept verbatim under `h2. Original Request`. Backs up the whole field first. |
 | `jira-implement` | Reads the ticket (the `jira-refine` spec if there is one), branches, works through its solution steps in code, and verifies against the ticket's acceptance conditions. Touches the repo only, never Jira. |
+| `jira-commit` | Reads the working tree, writes a commit message that summarises the work (not the diff), commits, then runs `jira-sync`. Never pushes. |
 | `jira-sync` | Reads the current git branch, writes a ≤1000-char change summary in Jira wiki markup, posts it as a comment on the ticket named by the branch (`feature/PROJ-123` → `PROJ-123`). |
 | `jira-goal` | Goal mode: one approval up front, then refine → implement → loop until every acceptance condition passes → post the summary. Halts on ambiguity, credentials, or anything outward-facing. |
 | `jira-sprint-report` | Pulls a sprint, renders one person's work as a self-contained HTML file: stats, SVG charts, a sortable/filterable issue table, a written summary per closed ticket, and a team comparison block. |
 
 They compose along the life of a ticket: `jira-refine` writes the plan, `jira-implement`
-builds it, `jira-sync` posts the write-up at merge time, `jira-sprint-report` harvests those
-same comments at the end of the sprint. `jira-goal` chains the first three behind a single
-approval.
+builds it, `jira-commit` commits it and `jira-sync` posts the write-up, `jira-sprint-report` harvests
+those same comments at the end of the sprint. `jira-goal` chains refine, implement and sync
+behind a single approval.
 
 ## Goal mode, and what one approval buys
 
@@ -25,7 +26,8 @@ appending the spec to the description, editing code on a new branch, and posting
 comment.
 
 **`git commit` and `git push` are never part of it.** The run ends with the changes
-uncommitted in the working tree; reviewing and committing them is yours, and it is the last
+uncommitted in the working tree; reviewing and committing them is yours (`jira-commit` does
+the commit once you have looked), and it is the last
 human gate before the code becomes history. Because there are no commits, the summary comment
 is built from `git diff <mainline>` rather than the commit log.
 
@@ -47,7 +49,7 @@ report) go through MCP and are more portable.
 
 ## Install
 
-All five are plain [Agent Skills](https://developers.openai.com/codex/skills) — a
+All six are plain [Agent Skills](https://developers.openai.com/codex/skills) — a
 directory with a `SKILL.md` carrying `name` and `description`. Any agent that reads that
 format can run them. Only the Claude Code path uses the plugin marketplace; the rest is
 copying directories.
@@ -186,7 +188,7 @@ Assignee resolution, first hit wins: CLI argument → `"me"` in the input JSON �
 
 ### MCP server
 
-All five skills read through an Atlassian MCP server, using the same URL and token as above:
+All six skills read through an Atlassian MCP server, using the same URL and token as above:
 
 ```json
 {
@@ -244,7 +246,7 @@ python skills/jira-sprint-report/test_render.py   # same file, as a smoke test
 
 ## Handling secrets in tickets
 
-People paste keys, tokens and connection strings into Jira comments. All five skills are
+People paste keys, tokens and connection strings into Jira comments. All six skills are
 instructed to summarise the *fact* ("signing key rotated") and never copy the value into a
 report or a new comment. If you find a live credential in a ticket, the skill will say so
 instead of quietly propagating it.
