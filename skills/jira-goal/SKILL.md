@@ -120,16 +120,26 @@ Do the parts that do not depend on the blocker first, then stop and say what blo
 
 ## Report
 
-One block at the end, regardless of how the run finished:
+One block at the end, regardless of how the run finished. Same labelled-line shape the other
+skills report in — header, then one line per fact, no paragraph:
 
 ```
-PROJ-123 — <finished | stopped at phase N>
-description   spec appended, original kept (backup: /tmp/jira-PROJ-123-description-….txt)
-branch        feature/PROJ-123-slug, N files changed, uncommitted
-verified      3/4 acceptance criteria — <condition> unverified: needs staging
-comment       <browse url>
-left          review the diff, commit, push  (+ anything else)
+PROJ-123 finished — Checkout drops stock reservation
+(or: PROJ-123 stopped at phase 2 — <one line on what blocked it>)
+
+- description  spec appended, original kept
+- backup       /tmp/jira-PROJ-123-description-20260821-101530.txt
+- branch       feature/PROJ-123-stock-reservation, 5 files changed, uncommitted
+- verified     3 of 4 acceptance criteria; "no oversell under load" unverified, needs staging
+- comment      https://jira.example.com/browse/PROJ-123?focusedCommentId=88214
+- left         review the diff, commit, push
 ```
+
+Labels are written in whatever language the user is speaking; the example is English.
+
+A stopped run keeps the same lines — the ones that never happened say so (`comment   not
+posted, phase 3 did not finish`) rather than being dropped, so the user sees the whole scope
+of the run either way.
 
 ## Notes
 

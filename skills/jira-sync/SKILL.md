@@ -110,13 +110,28 @@ from a code comment, the commit message, or something you actually measured — 
 **Never paste credentials into a comment.** Diffs and code comments sometimes contain keys,
 tokens or connection strings. Summarise the fact ("signing key rotated"), never the value.
 
-Before posting, count the characters and state the count to the user.
+Count the characters before posting; the count goes on the preview header line in step 4.
 
 ### 4. Confirm, then post
 
-Posting to Jira is outward-facing and visible to the team. Show the rendered comment text
-to the user and get an explicit go-ahead before posting. If the user already said "post it"
-in the same turn as invoking the skill, that counts.
+Posting to Jira is outward-facing and visible to the team. Show the comment and get an
+explicit go-ahead before posting. If the user already said "post it" in the same turn as
+invoking the skill, that counts.
+
+**Preview in Markdown, post in wiki markup.** Wiki markup does not render in a terminal —
+`{{mono}}` and a column-1 `*` are noise to read. The temp file gets the wiki markup; the user
+sees the same bullets as Markdown, `-` and `` `code` ``, inside one block:
+
+```
+PROJ-123 — Checkout drops stock reservation   (612 / 1000 chars)
+
+- `OrderService.create` now reserves stock before payment — the reservation was released
+  by the retry path, root cause of the oversell
+- **Behaviour change:** a failed payment no longer frees the reservation immediately
+```
+
+Ticket key, summary and the character count sit on one header line, so the cap is visible
+without a separate sentence about it.
 
 Write the body to a temp file (UTF-8), then:
 
@@ -125,7 +140,24 @@ bash <skill-dir>/post-comment.sh PROJ-123 /tmp/jira-comment.txt
 ```
 
 Prints `OK <browse url> (comment id N)` on success; non-zero exit and the API response body
-on failure. Report the browse URL back to the user.
+on failure.
+
+### 5. Report
+
+Three labelled lines, not a paragraph:
+
+```
+Comment posted — PROJ-123 Checkout drops stock reservation
+
+- content  3 bullets, 612 chars
+- range    develop..HEAD, 4 commits
+- link     https://jira.example.com/browse/PROJ-123?focusedCommentId=88214
+```
+
+Labels are written in whatever language the user is speaking; the example is English.
+
+On failure: the shortest decisive line of the API response, plus the temp file path — the
+draft is not lost and can be reposted.
 
 ## Notes
 

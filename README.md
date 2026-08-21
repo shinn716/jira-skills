@@ -2,21 +2,24 @@
 
 English | [繁體中文](README.zh-TW.md)
 
-Six skills for **Jira Server / Data Center**, built around the read-only Jira MCP server:
+Six skills for **Jira Server / Data Center**, built around the read-only Jira MCP server.
 
-| Skill | What it does |
-|---|---|
-| `jira-refine` | Reads a ticket's title and description, analyses this repo, and appends a solution spec — tables, a numbered flow, bullet lists — below the original text, which is kept verbatim under `h2. Original Request`. Backs up the whole field first. |
-| `jira-implement` | Reads the ticket (the `jira-refine` spec if there is one), branches, works through its solution steps in code, and verifies against the ticket's acceptance conditions. Touches the repo only, never Jira. |
-| `jira-commit` | Reads the working tree, writes a commit message that summarises the work (not the diff), commits, then runs `jira-sync`. Never pushes. |
-| `jira-sync` | Reads the current git branch, writes a ≤1000-char change summary in Jira wiki markup, posts it as a comment on the ticket named by the branch (`feature/PROJ-123` → `PROJ-123`). |
-| `jira-goal` | Goal mode: one approval up front, then refine → implement → loop until every acceptance condition passes → post the summary. Halts on ambiguity, credentials, or anything outward-facing. |
-| `jira-sprint-report` | Pulls a sprint, renders one person's work as a self-contained HTML file: stats, SVG charts, a sortable/filterable issue table, a written summary per closed ticket, and a team comparison block. |
+| Skill | Reads | Writes | One line |
+|---|---|---|---|
+| `jira-refine` | ticket + repo | ticket description | Appends a solution spec below the original text |
+| `jira-implement` | ticket + repo | code | Branches and works the spec's solution steps |
+| `jira-commit` | working tree | commit | Commits with a summary of the work, never pushes |
+| `jira-sync` | git branch | ticket comment | Posts a ≤1000-char change summary |
+| `jira-goal` | ticket + repo | description, code, comment | All of the above behind one approval, minus the commit |
+| `jira-sprint-report` | sprint | local HTML file | Renders one person's sprint as a standalone report |
 
-They compose along the life of a ticket: `jira-refine` writes the plan, `jira-implement`
-builds it, `jira-commit` commits it and `jira-sync` posts the write-up, `jira-sprint-report`
-harvests those same comments at the end of the sprint. `jira-goal` chains refine, implement and sync
-behind a single approval.
+They follow the life of a ticket: `jira-refine` writes the plan, `jira-implement` builds it,
+`jira-commit` commits it, `jira-sync` posts the write-up, and `jira-sprint-report` harvests
+those same comments at the end of the sprint.
+
+[Workflow](#workflow) · [Goal mode](#goal-mode-and-what-one-approval-buys) ·
+[Install](#install) · [Setup](#setup) · [MCP server](#5-mcp-server) ·
+[Not for Jira Cloud](#not-for-jira-cloud)
 
 ## Workflow
 
@@ -24,6 +27,7 @@ Step by step, one skill at a time. The two boxes with a thick border are yours �
 this plugin commits or pushes for you:
 
 ```mermaid
+%%{init:{"flowchart":{"nodeSpacing":18,"rankSpacing":20,"padding":3},"themeVariables":{"fontSize":"11px"}}}%%
 flowchart TD
     ticket([ticket]) --> refine
     refine["<b>jira-refine</b><br/>spec appended"] --> implement["<b>jira-implement</b><br/>branch + code"] --> check{"verified?"}
@@ -47,26 +51,34 @@ diagram is in the next section.
 ## Goal mode, and what one approval buys
 
 `jira-goal` is the only skill that acts without asking per step. It asks once, up front, with
-the exact list of writes it will make, and that approval covers **one ticket, one run**:
-appending the spec to the description, editing code on a new branch, and posting the summary
-comment.
+the exact list of writes it will make.
 
-**`git commit` and `git push` are never part of it.** The run ends with the changes
+**What the approval covers** — one ticket, one run:
+
+- appending the spec to the ticket description
+- editing code on a new branch
+- posting the summary comment
+
+**What it never covers:** `git commit` and `git push`. The run ends with the changes
 uncommitted in the working tree; reviewing and committing them is yours (`jira-commit` does
-the commit once you have looked), and it is the last human gate before the code becomes
-history. Because there are no commits, the summary comment
-is built from `git diff <mainline>` rather than the commit log.
+that once you have looked), and it is the last human gate before the code becomes history.
+Because there are no commits, the summary comment is built from `git diff <mainline>` rather
+than the commit log.
 
-It also halts — approval or not — on an ambiguous requirement, a credential in the repo or
-ticket, work that needs another repo or ticket, or anything outward-facing (commit, push,
-merge, ticket transition, history rewrite). A stopped run reports; it does not post a "done"
-comment.
+**What halts the run anyway**, approval or not:
 
-Both Jira writes stay recoverable: the reporter's original description is carried forward
-inside the new one and the whole field is backed up to a file first, and the comment is a
-comment.
+- an ambiguous requirement — two readings, two different implementations
+- a credential in the repo, the diff or the ticket
+- work that needs another repo, another ticket, or a new dependency
+- anything outward-facing: commit, push, merge, ticket transition, history rewrite
+
+A stopped run reports; it does not post a "done" comment.
+
+Both Jira writes stay recoverable: the original description is carried forward inside the new
+one and the whole field is backed up to a file first, and a comment is only a comment.
 
 ```mermaid
+%%{init:{"flowchart":{"nodeSpacing":18,"rankSpacing":20,"padding":3},"themeVariables":{"fontSize":"11px"}}}%%
 flowchart TD
     ask{{"approve once"}} -- no --> stop([nothing happens])
     ask -- yes --> refine
@@ -95,72 +107,45 @@ report) go through MCP and are more portable.
 
 ## Install
 
-All six are plain [Agent Skills](https://developers.openai.com/codex/skills) — a
-directory with a `SKILL.md` carrying `name` and `description`. Any agent that reads that
-format can run them. Only the Claude Code path uses the plugin marketplace; the rest is
-copying directories.
+All six are plain [Agent Skills](https://developers.openai.com/codex/skills) — a directory
+with a `SKILL.md`. Any agent that reads that format runs them. Only Claude Code uses the
+marketplace; everywhere else it is a directory copy.
 
-### Claude Code
+| Agent | Install | Also works |
+|---|---|---|
+| Claude Code | `claude plugin marketplace add shinn716/jira-skills`<br/>`claude plugin install jira-skills@jira-skills` | a local path instead of the repo name, or `skills/*` into `~/.claude/skills/` |
+| OpenAI Codex | `cp -r skills/* ~/.codex/skills/` | `.agents/skills/` for one project; `/skills` lists, `$` mentions |
+| opencode | `cp -r skills/* ~/.config/opencode/skills/` | reads `~/.claude/skills/` too — one copy serves both |
 
-```bash
-claude plugin marketplace add shinn716/jira-skills
-claude plugin install jira-skills@jira-skills
-```
+Clone first for the copy routes: `git clone https://github.com/shinn716/jira-skills`.
+Restart the agent if a freshly copied skill does not show up.
 
-Or clone and add the local path (`claude plugin marketplace add /path/to/jira-skills`), or
-copy `skills/*` into `~/.claude/skills/`.
+**Cross-agent notes**
 
-### OpenAI Codex
-
-```bash
-git clone https://github.com/shinn716/jira-skills
-cp -r jira-skills/skills/* ~/.codex/skills/
-```
-
-Project-scoped instead: copy into `.agents/skills/` and commit. `/skills` lists them, `$`
-mentions one. Restart Codex if a freshly copied skill does not show up.
-
-### opencode
-
-```bash
-cp -r jira-skills/skills/* ~/.config/opencode/skills/
-```
-
-opencode also reads Claude-compatible paths, so `~/.claude/skills/` or a project
-`.claude/skills/` works unchanged — one copy serves both agents.
-
-### Cross-agent notes
-
-- **MCP tool names are written bare** in the skills (`jira_get_sprint_issues`), not with
-  Claude's `mcp__jira__` prefix. Each agent prefixes its own way; match on the suffix.
-- **Codex sandboxes network access by default.** `post-comment.sh` and
-  `update-description.sh` talk to Jira over HTTPS, so they fail under the default sandbox —
-  run Codex with network access enabled, or approve the command when prompted. The sprint
-  report is unaffected: it reads through MCP and `render.py` only writes a local file.
-- **`render.py` needs Python 3 and nothing else**, so it runs the same everywhere.
+- **MCP tool names are written bare** (`jira_get_sprint_issues`), without Claude's
+  `mcp__jira__` prefix. Each agent prefixes its own way; match on the suffix.
+- **Codex sandboxes network by default**, so `post-comment.sh` and `update-description.sh`
+  fail there — enable network access or approve the command. Reads through MCP are fine.
 - Both scripts need `bash`, `curl` and `python` on PATH. On Windows, Git Bash.
 
 ## Setup
 
-### JIRA_URL and JIRA_PERSONAL_TOKEN
+### 1. Create a token
 
-`post-comment.sh` and `update-description.sh` read both from the environment and exit with a
-named error if either is missing. The MCP server wants the same pair (see below).
+Jira → avatar → **Profile** → **Personal Access Tokens** → *Create token*. Copy the value,
+Jira shows it once. The token inherits your own permissions.
 
-**1. Create the token.** Jira → avatar → **Profile** → **Personal Access Tokens** → *Create
-token*. Name it, set an expiry, copy the value — Jira shows it once. The token inherits your
-own permissions, so it can comment on exactly the tickets you can.
+Server / Data Center 8.14+ only. Cloud's same menu gives an API token that authenticates as
+`email:token` over Basic, not Bearer — see [Not for Jira Cloud](#not-for-jira-cloud).
 
-Personal Access Tokens are Jira **Server / Data Center** (8.14+). On Jira Cloud the same
-menu gives an API token that authenticates as `email:token` over Basic, not Bearer — see
-"Not for Jira Cloud" above.
+### 2. Set two variables
 
-**2. Set the variables.** `JIRA_URL` is the base URL, no trailing path — `/rest/...` is
-appended by the script. A trailing slash is stripped for you.
+`JIRA_URL` is the base URL, no trailing path (`/rest/...` is appended for you; a trailing
+slash is stripped). `JIRA_PERSONAL_TOKEN` is the value from step 1. Both scripts exit with a
+named error if either is missing.
 
-Simplest with Claude Code: the `env` block of **`~/.claude/settings.json`**. Every Bash tool
-call inherits it, so `post-comment.sh` works in any project without touching your shell
-profile:
+Claude Code — the `env` block of **user-level** `~/.claude/settings.json`, which every Bash
+call inherits. Never a project's `.claude/settings.json`; that one gets committed.
 
 ```json
 {
@@ -171,48 +156,42 @@ profile:
 }
 ```
 
-Merge into the existing `env` object if you already have one, and restart Claude Code.
-Put it in the **user-level** `~/.claude/settings.json`, never in a project's
-`.claude/settings.json` — that file gets committed. The token sits in plaintext either way,
-so treat the file like an SSH key: user-only permissions, no syncing it into a repo.
-
-Other agents, or if you would rather not keep a token in a config file — shell environment,
-persisted in `~/.bashrc` / `~/.zshrc`:
+Any shell — `~/.bashrc` / `~/.zshrc`:
 
 ```bash
 export JIRA_URL=https://jira.example.com
-export JIRA_PERSONAL_TOKEN=NDU2...          # the value you just copied
+export JIRA_PERSONAL_TOKEN=NDU2...
 ```
 
-Windows, from PowerShell — `setx` writes to the user environment, so **open a new terminal**
-afterwards:
+Windows PowerShell — `setx` writes the user environment, so **open a new terminal** after:
 
 ```powershell
 setx JIRA_URL "https://jira.example.com"
 setx JIRA_PERSONAL_TOKEN "NDU2..."
 ```
 
-**3. Check it works.** 200 with your account name means both variables are right:
+Optional `JIRA_COMMENT_MAX`: comment length cap in characters, default `1000`, `0` disables.
+`post-comment.sh` refuses an over-long body rather than truncating it.
+
+### 3. Check it
 
 ```bash
 curl -s -H "Authorization: Bearer $JIRA_PERSONAL_TOKEN" \
   "$JIRA_URL/rest/api/2/myself" | head -c 200
 ```
 
-`401` → bad or expired token. `404` here → `JIRA_URL` points at something that is not the
-Jira base URL (a context path like `/jira` is easy to drop). A connection error → DNS, VPN or
-TLS, not auth.
+| Result | Means |
+|---|---|
+| 200 + your account name | both variables are right |
+| `401` | bad or expired token |
+| `404` | `JIRA_URL` is not the Jira base URL — a context path like `/jira` is easy to drop |
+| connection error | DNS, VPN or TLS, not auth |
 
-**Optional: `JIRA_COMMENT_MAX`.** Caps the comment length in characters — default `1000`, `0`
-disables the check. Set it the same way as the two above. `post-comment.sh` counts characters
-(CJK counts as 1 each) and refuses to post an over-long body rather than truncating it.
+The skills never write the token anywhere, but `settings.json` keeps it on disk in plaintext:
+user-only permissions, out of any dotfiles repo or cloud-synced folder, out of `config.json`,
+commit messages and Jira comments. Leaked → rotate it from the same Profile page.
 
-The skills themselves never write the token anywhere — but the `settings.json` route above
-does put it on disk in plaintext, so keep that file user-only and out of any dotfiles repo or
-cloud-synced folder. Keep the token out of `config.json`, out of commit messages and out of
-Jira comments; rotate it from the same Profile page if it leaks.
-
-### jira-sprint-report — a config file
+### 4. jira-sprint-report only — a config file
 
 Copy `skills/jira-sprint-report/config.example.json` to `config.json` beside it:
 
@@ -225,14 +204,11 @@ Copy `skills/jira-sprint-report/config.example.json` to `config.json` beside it:
 }
 ```
 
-No secrets — the sprint report reads Jira through the MCP server, which holds its own
-credentials. `config.json` is gitignored because the board id and username are yours.
+No secrets in it — the report reads Jira through MCP. Gitignored, because the board id and
+username are yours. Assignee resolution, first hit wins: CLI argument → `"me"` in the input
+JSON → `JIRA_ME` → `config.json`, matched case-insensitively against the display name.
 
-Assignee resolution, first hit wins: CLI argument → `"me"` in the input JSON → `JIRA_ME`
-→ `config.json`. Matched case-insensitively as a substring of the display name, so
-`jane.doe` matches `jane.doe Jane Doe`.
-
-### MCP server
+### 5. MCP server
 
 All six skills read through an Atlassian MCP server, using the same URL and token as above:
 
@@ -269,43 +245,6 @@ argv array).
 MCP: a read-only server exposes no comment or update tool. Keeping it read-only means no skill
 can mutate a ticket by accident — the write paths are two scripts that ask for confirmation
 first, and `update-description.sh` backs up the old description before replacing it.
-
-## Rendering a report by hand
-
-`render.py` needs no third-party packages — Python 3 standard library only.
-
-```bash
-python skills/jira-sprint-report/render.py sprint.json out.html ["Assignee Name"]
-```
-
-Input JSON is the raw MCP issue objects plus a `sprint` block; the optional `work_summary`
-per issue is what shows up under each row. Re-rendering the same dump for a different
-person is one command.
-
-`sample-sprint.json` is a working input you can render without touching Jira:
-
-```bash
-python skills/jira-sprint-report/render.py \
-  skills/jira-sprint-report/sample-sprint.json out.html
-python skills/jira-sprint-report/test_render.py   # same file, as a smoke test
-```
-
-## Handling secrets in tickets
-
-People paste keys, tokens and connection strings into Jira comments. All six skills are
-instructed to summarise the *fact* ("signing key rotated") and never copy the value into a
-report or a new comment. If you find a live credential in a ticket, the skill will say so
-instead of quietly propagating it.
-
-## Gotchas worth knowing
-
-- **"Done" is a status category, not a status name.** Custom statuses like `Terminated` or
-  `Closed` also sit in category `Done`. Filtering on the literal name undercounts.
-- **Sprint issue endpoints cap at 50 per page.** Both skills page until they reach `total`;
-  a partial page silently skews every percentage in the report.
-- **Comment threads correct themselves.** A later comment often retracts an earlier
-  conclusion. The summary step reads the whole thread rather than grabbing the longest
-  comment, which is usually the retracted one.
 
 ## Licence
 

@@ -129,9 +129,25 @@ Content rules:
 
 The description field is replaced wholesale by the REST call, even though the text you send
 starts with the original. So the body you post must **contain** the original — check that it
-does before posting, character for character. Show the full rendered text to the user and get
-an explicit go-ahead. "Refine PROJ-123 and update it" in the same turn counts as the
-go-ahead; anything less does not.
+does before posting, character for character.
+
+Then show a preview and get an explicit go-ahead. "Refine PROJ-123 and update it" in the same
+turn counts as the go-ahead; anything less does not.
+
+**Preview in Markdown, post in wiki markup.** Wiki markup does not render in a terminal —
+`||a||b||` and `{{mono}}` are noise to read. The temp file gets the wiki markup; the user sees
+the same content as Markdown: `##` headings, real tables, `` `code` ``, `-` bullets.
+
+Do not reprint the original description. It is unchanged and the user already wrote it — one
+line stands in for the whole block:
+
+```
+## Original Request
+_(unchanged, 412 chars — kept verbatim)_
+
+## Background
+- ...
+```
 
 Write the body to a temp file (UTF-8), then:
 
@@ -139,9 +155,24 @@ Write the body to a temp file (UTF-8), then:
 bash <skill-dir>/update-description.sh PROJ-123 /tmp/jira-description.txt
 ```
 
-The script saves the current description to a backup file and prints its path before writing,
-so the previous text is recoverable. Report both the backup path and the browse URL back to
-the user.
+The script saves the current description to a backup file and prints its path before writing.
+
+### 5. Report
+
+Four labelled lines, not a paragraph:
+
+```
+Description updated — PROJ-123 Checkout drops stock reservation
+
+- added     Background 4 bullets, Current State 3 rows, Impact 2 rows, AC 5 conditions
+- original  untouched, 412 chars
+- backup    /tmp/jira-PROJ-123-description-20260821-101530.txt
+- link      https://jira.example.com/browse/PROJ-123
+```
+
+Labels are written in whatever language the user is speaking; the example is English.
+
+Backup path and browse URL always appear — they are the two things the user acts on.
 
 ## Notes
 

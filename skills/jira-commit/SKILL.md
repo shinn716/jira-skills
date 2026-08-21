@@ -89,6 +89,26 @@ posting. The commit you just made is part of that range.
 Posting is visible to the team, so the confirmation stands even though the commit is done.
 If the user already said "commit and sync" in one turn, that covers both.
 
+### 6. Report
+
+Labelled lines, not one dense sentence. A SHA on its own says nothing — put the subject next
+to it:
+
+```
+Committed — PROJ-123
+
+- commit   0463261  Shrink the README diagrams
+- files    README.md, README.zh-TW.md (+28 / -68)
+- branch   feature/PROJ-123-slug (not pushed)
+- comment  https://jira.example.com/browse/PROJ-123?focusedCommentId=88214
+```
+
+Labels are written in whatever language the user is speaking; the example is English.
+
+`not pushed` stays on the branch line every time — it is the state the user has to act on.
+Sync skipped → say so on the comment line with the reason (`skipped, no ticket key on the
+branch`).
+
 ## Notes
 
 - Two writes, both recoverable in practice: an unpushed commit (`git reset --soft HEAD~1`)
